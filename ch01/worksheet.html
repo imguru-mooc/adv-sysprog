@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>고급 Linux System Programming II · Chapter 1 개념 워크시트 — 프로그램 실행과 System Call 내부 구조</title>
+<style>
+  :root{--bg:#0b1220;--panel:#111a2e;--line:#1f2b45;--text:#dbe4f0;--dim:#8a9bb8;--amber:#f5b942;--teal:#2dd4bf;--blue:#60a5fa;--green:#4ade80;--red:#f87171;--purple:#c084fc;--mono:"Consolas","D2Coding","JetBrains Mono",monospace}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--text);font-family:"Pretendard","Noto Sans KR","Segoe UI",sans-serif;font-size:15px;line-height:1.55}
+  .app{max-width:900px;margin:0 auto;padding:22px 20px 40px}
+  h1{color:var(--amber);font-size:24px;margin:0 0 6px}
+  .sub{color:var(--dim);margin:0 0 14px}
+  .panel{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:14px 16px;margin-bottom:14px}
+  .panel h2{font-size:14px;color:var(--dim);margin:0 0 10px;font-weight:600}
+  button{background:#172239;border:1px solid #2a3a5c;color:var(--text);border-radius:8px;padding:7px 12px;font-size:13px;cursor:pointer;font-family:inherit}
+  button:hover{border-color:var(--amber)}button.active{background:#3a2e12;border-color:var(--amber);color:var(--amber)}
+  button.primary{background:#123d33;border-color:var(--teal);color:var(--teal);font-weight:700;padding:9px 18px;font-size:14px}
+  button.submit{background:#3a2e12;border-color:var(--amber);color:var(--amber);font-weight:700;padding:9px 18px;font-size:14px}
+  button:disabled{opacity:.45;cursor:default}
+  button:focus-visible{outline:2px solid var(--amber);outline-offset:2px}
+  input[type=text]{background:#0a0f1c;color:var(--text);border:1px solid var(--line);border-radius:6px;padding:6px 10px;font-family:var(--mono);font-size:14px}
+  .tabs{display:flex;flex-wrap:wrap;gap:6px}
+  .tabs button .s{font-family:var(--mono);font-size:11px;color:var(--dim);margin-left:6px}
+  .tabs button.graded .s{color:var(--green)}
+  .head{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:8px}
+  .head .t{color:var(--amber);font-size:17px}
+  .head .a{font-size:13px;color:var(--teal);font-family:var(--mono)}
+  .q{border:1px solid var(--line);border-radius:10px;padding:12px 14px;margin-bottom:10px;background:#0e1628}
+  .q.unans{border-color:#5a3a1a}
+  .q .n{font-family:var(--mono);color:var(--dim);font-size:12px}
+  .q .p{margin:4px 0 10px;font-size:15px}
+  .q .p code,.opt code,.fb code,td code{font-family:var(--mono);color:var(--blue);background:#0a0f1c;padding:1px 5px;border-radius:4px}
+  .q pre.qc{font-family:var(--mono);background:#0a0f1c;border:1px solid var(--line);border-left:3px solid var(--blue);border-radius:6px;padding:10px 12px;margin:4px 0 12px;font-size:13.5px;line-height:1.5;white-space:pre;overflow-x:auto;color:#dbe4f3}
+  .q pre{font-family:var(--mono);background:#0a0f1c;border:1px solid var(--line);border-radius:6px;padding:8px 10px;margin:6px 0 10px;font-size:14px;white-space:pre;overflow-x:auto}
+  .opts{display:grid;gap:6px}
+  .opt{text-align:left;padding:8px 12px;font-size:14px;font-family:inherit}
+  .opt.sel{border-color:var(--amber);background:#1f1a0c}
+  .opt.ok{border-color:var(--green);color:var(--green);background:#0d2216}
+  .opt.bad{border-color:var(--red);color:var(--red);background:#2a1212}
+  .opt:disabled{cursor:default;opacity:.9}
+  .fb{margin-top:8px;font-size:13px;color:var(--dim);border-left:3px solid var(--line);padding-left:10px}
+  .fb.ok{border-left-color:var(--green)}.fb.bad{border-left-color:var(--red)}
+  .fb .anim{color:var(--teal);font-family:var(--mono);font-size:12px;display:block;margin-top:3px}
+  .actions{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:6px}
+  .code{font-family:var(--mono);font-size:20px;color:var(--amber);letter-spacing:1px}
+  .score{font-family:var(--mono);color:var(--green);font-size:16px}
+  .hint{color:var(--dim);font-size:13px}
+  details{color:var(--dim);font-size:13px}
+  details summary{cursor:pointer;color:var(--dim)}
+  .row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+  /* dialog */
+  dialog{background:var(--panel);color:var(--text);border:1px solid var(--line);border-radius:12px;padding:0;max-width:820px;width:92vw;max-height:88vh}
+  dialog::backdrop{background:#000a}
+  .dg{padding:18px 20px}
+  .dg h3{color:var(--amber);margin:0 0 4px;font-size:20px}
+  .dg .meta{color:var(--dim);font-size:13px;margin-bottom:12px;font-family:var(--mono)}
+  .dg .sec{margin:14px 0 6px;color:var(--teal);font-weight:700;font-size:14px}
+  .dg table{width:100%;border-collapse:collapse;font-size:13px}
+  .dg th{text-align:left;color:var(--dim);font-weight:600;padding:5px 8px;border-bottom:1px solid var(--line);font-size:12px}
+  .dg td{padding:5px 8px;border-bottom:1px solid #16203a;vertical-align:top}
+  .dg td.r{font-family:var(--mono)}
+  .dg .ok{color:var(--green)}.dg .bad{color:var(--red)}.dg .none{color:var(--dim)}
+  .dg .sum{display:flex;gap:16px;flex-wrap:wrap;margin:10px 0;font-family:var(--mono)}
+  .dgbar{position:sticky;bottom:0;background:var(--panel);border-top:1px solid var(--line);padding:10px 20px;display:flex;gap:8px;justify-content:flex-end;align-items:center}
+  .toast{color:var(--green);font-size:13px;margin-right:auto}
+  .body{overflow:auto;max-height:calc(88vh - 60px)}
+  @media (max-width:600px){ .app{ padding:14px 10px 30px; } .q pre.qc{ font-size:12.5px; } }
+</style>
+</head>
+<body>
+<div class="app">
+  <h1>Chapter 1 개념 워크시트</h1>
+  <p class="sub">고급 Linux System Programming II · 프로그램 실행과 System Call 내부 구조 · 5 Lecture × 10문항. 🎬 표시는 animation.html 의 애니메이션 번호입니다. 답을 고른 뒤 아래 <b style="color:var(--teal)">채점하기</b>를 누르면 정오·해설과 결과 코드가 나타납니다. 채점 전에는 답을 바꿀 수 있고, 채점 후에는 잠깁니다. 모든 Lecture 를 마치면 <b style="color:var(--amber)">제출</b>로 오답 정리를 열고, <b>캡처</b>로 복사해 노션에 붙여 넣으세요.</p>
+
+  <div class="panel">
+    <div class="row"><label style="color:var(--dim);font-size:13px">이름 <input type="text" id="name" placeholder="홍길동"></label><span class="hint">이름은 결과 코드 계산에만 쓰이며 저장되지 않습니다.</span></div>
+  </div>
+  <div class="panel"><h2>Lecture</h2><div class="tabs" id="tabs"></div></div>
+  <div class="panel" id="sheet"></div>
+  <div class="panel">
+    <div class="actions">
+      <button class="primary" id="gradeBtn">채점하기</button>
+      <span class="code" id="rcode">—</span><span class="score" id="rscore"></span><span class="hint" id="rhint"></span>
+      <button class="submit" id="submitBtn" style="margin-left:auto">제출</button>
+    </div>
+  </div>
+</div>
+
+<dialog id="dlg">
+  <div class="body"><div class="dg" id="dgBody"></div></div>
+  <div class="dgbar"><span class="toast" id="toast"></span><button id="captureBtn" class="primary">📋 캡처 (노션용 복사)</button><button id="closeBtn">닫기</button></div>
+</dialog>
+
+<script>
+const $=s=>document.querySelector(s);
+const Q=[{"t": "L01 · User Space에서 Kernel Space까지", "anim": "C1-1 User ↔ Kernel Mode", "qs": [{"p": "<code>printf(\"hello\\n\")<\/code> 한 줄이 화면에 나올 때, Kernel 에 실제로 출력을 요청하는 System Call 은 무엇입니까?", "o": ["puts", "write", "fflush", "printf"], "a": 1, "w": "printf · puts · fflush 는 모두 libc 함수입니다. 문자열을 만들고 Buffer 에 모은 뒤 결국 <code>write(1, …)<\/code> System Call 로 Kernel 에 출력을 부탁합니다.", "an": "1-3 strace 맨 아래 줄"}, {"p": "아래 프로그램이 출력하는 숫자로 알맞은 것은 무엇입니까? (x86-64)", "o": ["0", "64", "1", "4"], "a": 2, "w": "x86-64 에서 write 의 System Call 번호는 1, read 는 0 입니다. 64 는 ARM64 의 write 번호입니다. Kernel 은 이름이 아니라 번호로 요청을 구분합니다.", "an": "1-2 hello3_syscall", "c": "printf(&quot;%d\\n&quot;, SYS_write);"}, {"p": "glibc 의 <code>write()<\/code> 함수에 대한 설명으로 가장 알맞은 것은 무엇입니까?", "o": ["Kernel 안에 있는 write 처리 함수를 직접 호출하는 함수 포인터다", "번호와 인자를 준비해 Kernel 에 진입하는 User Space 의 작은 Wrapper 함수다", "stdio Buffer 에 모았다가 줄이 끝날 때 출력하는 Library 함수다", "Compiler 가 syscall 명령 하나로 바꿔 넣는 내장(built-in) 함수다"], "a": 1, "w": "write() 는 C 함수처럼 생겼지만 Kernel 함수가 아닙니다. 번호 1 과 인자를 Register 에 싣고 syscall 명령을 실행해 주는 glibc 의 Wrapper 입니다. Buffer 에 모으는 것은 printf 쪽입니다.", "an": "1-2"}, {"p": "<code>strlen()<\/code> 을 100만 번 호출하는 프로그램을 <code>strace -c<\/code> 로 보면 System Call 수는 어떻게 됩니까?", "o": ["strace 가 추적을 포기하고 종료한다", "50만 개 정도 늘어난다 (Buffer 효과)", "정확히 100만 개 늘어난다", "거의 늘지 않는다 (Kernel 에 가지 않는다)"], "a": 3, "w": "strlen 은 내 Process 의 Memory 만 읽으므로 Kernel 의 도움이 필요 없습니다. Kernel 이 필요한 기준은 \"내 Process 바깥의 자원을 건드리는가\" 입니다.", "an": "C1-1 strlen · 1-4 libonly"}, {"p": "Ring 3 에서 <code>hlt<\/code> 명령을 실행한 <code>priv<\/code> 가 Segmentation fault 로 죽었습니다. 일어난 일의 설명으로 알맞은 것은 무엇입니까?", "o": ["Kernel 이 hlt 를 실행하려는 코드를 미리 검사해 Process 를 죽였다", "glibc 가 위험한 명령을 감지해 abort() 를 호출했다", "CPU 가 실제로 멈췄다가 Watchdog 이 재시작하며 Process 를 죽였다", "CPU 가 특권 명령을 거부해 Exception 을 일으키고, Kernel 이 SIGSEGV 를 보냈다"], "a": 3, "w": "Privilege Level 검사는 CPU Hardware 가 강제합니다. CPU 가 General Protection Fault 를 일으키면 제어가 Kernel 로 넘어가고, Kernel 이 원인 Process 에 SIGSEGV 를 보냅니다.", "an": "C1-1 hlt · 1-5"}, {"p": "Ring 3 에서 Ring 0 로 넘어가는 경로가 <b>아닌<\/b> 것은 무엇입니까?", "o": ["System Call (syscall 명령)", "일반 함수 call 명령으로 Kernel 함수의 주소에 점프", "Exception (Page Fault, General Protection Fault)", "Interrupt (Timer, Keyboard, Disk 완료)"], "a": 1, "w": "Ring 0 로 가는 길은 System Call, Exception, Interrupt 세 가지이고 모두 Kernel 이 미리 정해 둔 입구로만 들어갑니다. 일반 call 로 Kernel 주소에 점프하면 Page 권한 위반(Exception)이 날 뿐입니다.", "an": "1-5 표"}, {"p": "<code>strace<\/code> 와 <code>ltrace<\/code> 가 각각 보여 주는 경계의 짝으로 알맞은 것은 무엇입니까?", "o": ["strace: Kernel 과의 경계 · ltrace: Shared Library 와의 경계", "둘 다 System Call 을 보여 주고 출력 형식만 다르다", "strace: Library 와의 경계 · ltrace: Kernel 과의 경계", "strace: 함수 호출 전체 · ltrace: System Call 만"], "a": 0, "w": "strace 는 System Call(Kernel 진입)을, ltrace 는 PLT 를 거치는 Library 함수 호출을 보여 줍니다. printf 를 썼는데 ltrace 에 puts 가 보인 것은 gcc 가 바꿔 Compile 했기 때문입니다.", "an": "1-3 ltrace"}, {"p": "열리지 않은 fd 99 에 write 하면 Kernel 은 무엇을 돌려줍니까?", "o": ["0 을 돌려주고 SIGPIPE 를 보낸다", "-1 을 돌려주고 Kernel 이 errno 변수에 9 를 직접 쓴다", "-9 (-EBADF) 를 rax 로 돌려주고, glibc 가 이를 -1 과 errno=9 로 바꾼다", "9 를 돌려주고 glibc 가 음수로 바꾼다"], "a": 2, "w": "Kernel 에는 errno 변수가 없습니다. Kernel 은 음수(-9)를 결과로 돌려주고, glibc Wrapper 가 -4095~-1 범위이면 errno 에 저장하고 -1 을 return 합니다. errno 는 Thread 마다 있는 User Space 변수입니다.", "an": "1-7 · C1-2 잘못된 fd", "c": "write(99, &quot;x&quot;, 1);"}, {"p": "<code>./hello1_printf > out.txt<\/code> 처럼 출력을 File 로 보낼 때 printf 의 동작으로 알맞은 것은 무엇입니까?", "o": ["fstat 으로 File 임을 확인하고 Buffer 가 찰 때(또는 exit 때)까지 모았다가 write 한다", "File 에는 write 대신 fwrite System Call 을 쓴다", "줄이 끝날 때마다 즉시 write 한다", "File 출력은 Kernel 을 거치지 않는다"], "a": 0, "w": "printf 는 첫 출력 때 fstat(1) 로 대상이 Terminal 인지 확인합니다. Terminal 이면 줄 단위, File·Pipe 이면 블록 단위로 모았다가 내보냅니다. 어느 쪽이든 결국 write System Call 입니다.", "an": "1-3 fstat 설명"}, {"p": "Library 함수와 System Call 의 Manual Section 짝으로 알맞은 것은 무엇입니까?", "o": ["man 2 printf · man 2 write", "man 2 printf · man 3 write", "man 1 printf · man 2 write", "man 3 printf · man 2 write"], "a": 3, "w": "Section 1 은 사용자 명령, 2 는 System Call, 3 은 C Library 함수입니다. man 1 printf 는 Shell 의 printf 명령 설명이 나옵니다.", "an": "1-1 표"}]}, {"t": "L02 · System Call Entry", "anim": "C1-2 System Call Entry", "qs": [{"p": "x86-64 에서 System Call 번호를 넣는 Register 는 무엇입니까?", "o": ["rsp", "rdi", "rax", "rcx"], "a": 2, "w": "rax 에 번호, rdi·rsi·rdx·r10·r8·r9 에 인자를 넣습니다. 복귀 후 결과값도 rax 로 돌아옵니다.", "an": "2-2 표"}, {"p": "System Call 의 네 번째 인자를 일반 함수 호출처럼 rcx 가 아니라 r10 에 넣는 이유는 무엇입니까?", "o": ["r10 이 rcx 보다 빠른 Register 이기 때문이다", "rcx 는 Kernel Mode 에서 읽을 수 없는 Register 이기 때문이다", "32bit 호환을 위해 rcx 를 비워 두어야 하기 때문이다", "syscall 명령이 rcx 를 복귀 주소 저장에 덮어쓰기 때문이다"], "a": 3, "w": "syscall 명령은 rcx ← rip(복귀 주소), r11 ← rflags 를 수행합니다. 그래서 인자를 rcx 에 넣으면 지워지고, Inline Assembly 에서도 rcx·r11 을 clobber 로 적습니다.", "an": "2-2 TIP · 2-3"}, {"p": "<code>syscall<\/code> 명령 하나가 CPU Hardware 로 수행하는 일이 <b>아닌<\/b> 것은 무엇입니까?", "o": ["rip 를 MSR_LSTAR 에 등록된 입구 주소로 바꾼다", "rcx 에 복귀 주소, r11 에 RFLAGS 를 저장한다", "CPL 을 3 에서 0 으로 바꾼다", "System Call 번호로 분기해 __x64_sys_write 를 호출한다"], "a": 3, "w": "번호에 따른 분기는 Kernel 의 C 코드(do_syscall_64 → x64_sys_call)가 합니다. syscall 명령 자체는 Register 저장, 입구로 점프, Ring 전환만 합니다.", "an": "C1-2 3단계 · 2-5 표"}, {"p": "프로그램이 Kernel 의 아무 주소로나 점프해 들어갈 수 없는 직접적인 이유는 무엇입니까?", "o": ["glibc 가 Kernel 주소를 알려 주지 않기 때문이다", "입구 주소가 Ring 0 에서만 쓸 수 있는 MSR_LSTAR 한 곳에 고정되어 있기 때문이다", "Kernel 주소는 매번 바뀌어서 계산할 수 없기 때문이다", "Kernel 코드가 Disk 에만 있고 Memory 에 없기 때문이다"], "a": 1, "w": "syscall 은 항상 MSR_LSTAR 에 적힌 entry_SYSCALL_64 로만 갑니다. 이 MSR 은 Ring 0 에서만 쓸 수 있으므로 User 프로그램이 입구를 바꿀 수 없습니다.", "an": "2-5"}, {"p": "Wrapper 없이 syscall 명령으로 <code>write(99, …)<\/code> 를 실행했을 때 반환값은 무엇입니까?", "o": ["9", "-1", "0", "-9"], "a": 3, "w": "Kernel 은 오류를 -errno 로 돌려줍니다. -1 과 errno=9 로 바꾸는 것은 glibc Wrapper 의 일이므로, Wrapper 를 거치지 않으면 -9 가 그대로 보입니다.", "an": "2-3 raw_syscall", "c": "r = raw_syscall3(1, 99, (long)msg, 1);"}, {"p": "gdb 의 <code>catch syscall write<\/code> 로 멈췄을 때 rax 가 1 이 아니라 -38 로 보였습니다. 원래 번호를 확인하는 방법은 무엇입니까?", "o": ["p $orig_rax", "x/s $rsi", "p $rcx", "info registers rip"], "a": 0, "w": "Kernel 은 진입하자마자 rax 에 기본값 -ENOSYS(-38)를 넣어 둡니다. 원래의 System Call 번호는 pt_regs 의 orig_ax 에 있고 gdb 는 $orig_rax 로 보여 줍니다.", "an": "2-4"}, {"p": "<code>clock_gettime()<\/code> 100만 번과 <code>syscall(SYS_clock_gettime, …)<\/code> 100만 번을 실행한 프로그램을 strace -c 로 보면 clock_gettime 은 몇 번으로 집계됩니까?", "o": ["0 번 (둘 다 vDSO)", "100만 번 (glibc 쪽은 vDSO 로 처리되어 보이지 않는다)", "200만 번", "1 번 (첫 호출만 Kernel 진입)"], "a": 1, "w": "glibc 의 clock_gettime 은 syscall 명령 대신 Kernel 이 Mapping 해 준 [vdso] 의 함수를 일반 함수처럼 호출하고 [vvar] 를 읽어 계산만 합니다. Ring 3 를 벗어나지 않으므로 strace 에 잡히지 않습니다.", "an": "2-7 · C1-2 vDSO"}, {"p": "<code>/proc/self/maps<\/code> 에서 <code>[vdso]<\/code> 와 <code>[vvar]<\/code> 의 권한 짝으로 알맞은 것은 무엇입니까?", "o": ["[vdso] rw-p · [vvar] r-xp", "[vdso] r--p · [vvar] rw-p", "[vdso] r-xp · [vvar] r--p", "[vdso] rwxp · [vvar] rwxp"], "a": 2, "w": "[vdso] 는 실행 가능한 작은 Shared Library 이고, [vvar] 는 Kernel 이 갱신하는 시간 Data 를 읽기만 하는 Page 입니다.", "an": "2-7 표"}, {"p": "vdso_time 실습에서 syscall 쪽이 vDSO 보다 몇 배 느리게 나왔습니다. 그 차이의 원인으로 가장 거리가 <b>먼<\/b> 것은 무엇입니까?", "o": ["Mode 전환과 Kernel Stack 전환", "Register 저장과 복원 (pt_regs)", "clock_gettime 의 시간 계산 자체가 Kernel 에서 더 복잡하기 때문", "Spectre/Meltdown 대응 같은 보안 완화 처리"], "a": 2, "w": "같은 계산을 하는데 Kernel 에 진입하는 고정 비용(Mode·Stack 전환, Register 저장·복원, 보안 완화, Cache·TLB 영향)이 차이를 만듭니다. 이 비용이 stdio Buffer, futex, epoll, io_uring 의 동기입니다.", "an": "2-8"}, {"p": "Kernel 7.0 Source 에서 x86-64 System Call 분기를 찾으려 합니다. 실제 분기가 일어나는 곳으로 알맞은 것은 무엇입니까?", "o": ["arch/x86/entry/syscall_64.c 의 x64_sys_call (switch 문)", "kernel/sys.c 의 syscall_dispatch 함수 포인터", "arch/x86/kernel/cpu/common.c 의 wrmsrl", "fs/read_write.c 의 sys_call_table 배열"], "a": 0, "w": "Kernel 6.9 부터 x86-64 는 Spectre 계열 완화를 위해 함수 포인터 배열 대신 switch 문(x64_sys_call)으로 분기합니다. common.c 의 wrmsrl 은 MSR_LSTAR 에 입구를 등록하는 곳입니다.", "an": "2-6 NOTE"}]}, {"t": "L03 · ELF 실행 파일 내부 구조", "anim": "C1-3 ELF Explorer", "qs": [{"p": "Kernel 이 execve 때 File 을 ELF 로 판단하는 근거는 무엇입니까?", "o": ["Section Header 의 개수", "File 의 실행 권한(x) bit", "처음 4 Byte 의 Magic Number 7f 45 4c 46", "File 이름의 확장자"], "a": 2, "w": "Kernel 은 File 앞부분을 읽어 \\x7fELF 이면 load_elf_binary, #! 이면 Script 로 처리합니다. 확장자는 보지 않습니다.", "an": "3-1 xxd"}, {"p": "<code>readelf -h<\/code> 의 Entry point address 에 대한 설명으로 알맞은 것은 무엇입니까?", "o": ["프로그램이 처음 실행을 시작할 주소이며 main 이 아니다 (_start)", "Dynamic Loader 가 Mapping 될 주소다", "main 함수의 주소다", ".data Section 의 시작 주소다"], "a": 0, "w": "Entry Point 는 _start 의 주소입니다. main 은 _start → __libc_start_main 이 호출하는 Callback 입니다(L05).", "an": "3-2 표"}, {"p": "아래 변수들이 들어가는 Section 의 짝으로 알맞은 것은 무엇입니까?", "o": [".bss · .data · .rodata", ".rodata · .bss · .data", ".data · .data · .text", ".data · .bss · .rodata"], "a": 3, "w": "초기값이 있는 전역은 .data, 초기값이 없거나 0 이면 .bss, const 전역과 문자열 Literal 은 .rodata, 함수 기계어는 .text 입니다. 지역 변수는 ELF 에 없습니다.", "an": "3-3 · 빈칸 3-1", "c": "int g_init = 42;\nint g_uninit;\nconst int g_const = 7;"}, {"p": "<code>static char big[10*1024*1024];<\/code> 와 <code>= { 1 };<\/code> 로 만든 두 실행 File 의 크기가 17KB 와 10MB 로 다른 이유는 무엇입니까?", "o": [".bss 는 NOBITS 라서 File 에 크기만 기록되고, { 1 } 은 .data 로 가서 내용이 저장되기 때문", "{ 1 } 쪽만 Debug 정보가 포함되기 때문", ".bss 는 압축되어 저장되기 때문", "첫 번째 배열은 Compiler 가 최적화로 지웠기 때문"], "a": 0, "w": "0 으로 채울 영역은 File 에 0 을 저장할 필요 없이 크기만 적습니다(NOBITS). 0 이 아닌 값이 하나라도 있으면 배열 전체가 .data 로 가서 File 에 그대로 들어갑니다.", "an": "3-4 size"}, {"p": "Kernel 과 Dynamic Loader 가 실행할 때 읽는 목차는 무엇입니까?", "o": [".symtab", "Section Header Table", "Program Header Table (Segment)", ".debug_info"], "a": 2, "w": "ELF 에는 목차가 두 개 있습니다. Section Header 는 ld·gdb·readelf 를 위한 것이고, Program Header 는 Kernel·ld.so 를 위한 것입니다. Kernel 은 Section 을 보지 않습니다.", "an": "3-2 그림 · 3-5"}, {"p": "Program Header 의 <code>LOAD<\/code> 한 줄이 Kernel 에게 지시하는 내용으로 알맞은 것은 무엇입니까?", "o": ["File 의 Offset 부터 FileSiz 만큼을 VirtAddr 에 MemSiz 크기, Flg 권한으로 mmap 하라", "Section 이름을 Memory 에 등록하라", "이 Segment 를 Disk 에서 지금 전부 read 하라", "이 Segment 의 Symbol 을 찾아 Relocation 하라"], "a": 0, "w": "LOAD 는 mmap 지시서입니다. Offset·FileSiz·VirtAddr·MemSiz·Flg 가 mmap 의 인자와 그대로 대응합니다(L05 의 strace mmap 줄과 비교).", "an": "3-5 표"}, {"p": "Section 은 37개인데 LOAD Segment 는 4개뿐입니다. 묶는 기준은 무엇입니까?", "o": ["Compile 된 Source File 별로", "권한(R / R E / RW)이 같은 Section 끼리 Page 단위로 묶는다", "크기가 비슷한 Section 끼리", "Section 이름의 알파벳 순서"], "a": 1, "w": "권한은 Page(4KB) 단위로만 줄 수 있으므로 권한이 같은 것끼리 묶습니다. 코드는 R E(쓰기 금지), Data 는 RW(실행 금지) — W^X 원칙입니다.", "an": "3-5 · C1-3 Segment 관점"}, {"p": "05번 LOAD Segment 의 FileSiz 는 0x270 인데 MemSiz 는 0x12b0 입니다. 그 차이 0x1040 은 무엇입니까?", "o": ["Section Header Table 의 크기", ".bss 의 크기 — Memory 에만 0 으로 채운 영역을 만든다", ".text 가 Memory 에서 압축 해제된 크기", "Dynamic Loader 가 쓸 Heap"], "a": 1, "w": "File 에는 없지만 Memory 에는 자리를 만들고 0 으로 채우라는 뜻입니다. readelf -S 의 .bss 크기 001040 과 정확히 같습니다.", "an": "3-5 둘째 · C1-3 Loading 7"}, {"p": "<code>strip<\/code> 으로 .symtab 과 Debug 정보를 지운 실행 File 이 여전히 정상 실행되는 이유는 무엇입니까?", "o": ["strip 은 File 크기만 줄이고 실제로 지우지 않기 때문", "Kernel 이 실행 직전에 Symbol 을 다시 만들어 주기 때문", "strip 이 Section 을 Segment 안으로 옮겨 주기 때문", "실행에 필요한 것은 Segment 이고, 지운 Section 은 어느 LOAD Segment 에도 속하지 않기 때문"], "a": 3, "w": ".symtab, .strtab, .debug_* 은 Alloc Flag 가 없어 Memory 에 올라가지 않습니다. 대신 gdb 로 Debugging 하기 어려워집니다.", "an": "3-6"}, {"p": "같은 Source 를 기본(PIE), <code>-no-pie<\/code>, <code>-static<\/code> 으로 Build 했습니다. 알맞은 설명은 무엇입니까?", "o": ["세 File 의 크기는 거의 같다", "PIE 는 Type DYN 에 실행마다 시작 주소가 바뀌고, Static 에는 INTERP 가 없다", "non-PIE 에는 INTERP 가 없고 Static 은 INTERP 가 두 개다", "PIE 는 Type EXEC 에 고정 주소다"], "a": 1, "w": "PIE 는 DYN(상대 주소, ASLR), non-PIE 는 EXEC(고정 주소), Static 은 EXEC 이면서 연결할 Library 가 없어 INTERP 가 없고 libc 코드가 들어 있어 큽니다.", "an": "3-7 표"}]}, {"t": "L04 · Dynamic Loader와 Shared Library", "anim": "C1-4 PLT / GOT", "qs": [{"p": "<code>gcc … -L. -lgreet<\/code> 로 Build 는 성공했는데 실행하면 \"cannot open shared object file\" 이 납니다. 이유는 무엇입니까?", "o": ["-L. 은 Link 할 때 ld 에게만 쓰이고 실행 File 에는 이름(NEEDED)만 기록되기 때문", "libgreet.so 를 -fPIC 없이 만들었기 때문", "Kernel 이 현재 Directory 의 File 을 실행하지 않기 때문", "main 에 #include &quot;greet.h&quot; 가 빠졌기 때문"], "a": 0, "w": "실행 File 의 .dynamic 에는 libgreet.so 라는 이름만 있습니다. 실행 시 Library 를 찾는 것은 ld.so 이고, 검색 경로에 현재 Directory 가 없습니다.", "an": "4-2 ldd · readelf -d"}, {"p": "Dynamic Loader 가 Library 를 찾는 순서로 알맞은 것은 무엇입니까?", "o": ["/etc/ld.so.cache → LD_LIBRARY_PATH → RUNPATH", "현재 Directory → PATH 환경 변수 → /usr/lib", "LD_LIBRARY_PATH → RUNPATH → /etc/ld.so.cache → 기본 경로", "RUNPATH → 기본 경로 → LD_LIBRARY_PATH → ld.so.cache"], "a": 2, "w": "LD_DEBUG=libs 로 확인한 순서입니다. LD_LIBRARY_PATH 는 setuid 프로그램에서 무시되고, ld.so.cache 는 ldconfig 가 만든 색인입니다. PATH 는 실행 File 을 찾는 변수입니다.", "an": "4-3 표"}, {"p": "<code>-Wl,-rpath,'$ORIGIN'<\/code> 의 <code>$ORIGIN<\/code> 이 뜻하는 것은 무엇입니까?", "o": ["사용자의 Home Directory", "이 실행 File 이 있는 Directory", "Shell 의 현재 Directory", "/usr/lib"], "a": 1, "w": "실행 File 과 Library 를 한 Folder 에 담아 배포할 때 씁니다. readelf -d 에 RUNPATH [$ORIGIN] 으로 기록됩니다.", "an": "4-3"}, {"p": "Library 함수를 호출할 때 PLT 는 코드 영역에, GOT 는 Data 영역에 두는 이유는 무엇입니까?", "o": ["Data 영역이 코드 영역보다 접근이 빠르기 때문", "GOT 는 Disk 에, PLT 는 Memory 에 있어야 하기 때문", "코드는 읽기 전용이라 고칠 수 없으므로, 실행 중에 주소를 적을 칸은 쓰기 가능한 Data 영역에 둔다", "Compiler 가 함수 포인터를 코드에 둘 수 없기 때문"], "a": 2, "w": "Compile 시점에는 Library 가 Memory 어디에 올라갈지 모릅니다. 코드는 \"GOT 칸에 적힌 주소로 점프\" 만 하고(PLT), 실제 주소는 ld.so 가 GOT 에 적습니다.", "an": "4-4 표"}, {"p": "Lazy Binding 으로 Build 한 main_lazy 에서 첫 greet() 호출 직전 GOT 칸에 들어 있던 0x401050 은 무엇입니까?", "o": ["실행 File 의 .plt 안에 있는 &quot;Loader 에게 찾아 달라&quot; 는 코드의 주소", "아직 초기화되지 않은 쓰레기 값", "libgreet.so 의 greet 함수 주소", "ld.so 가 Mapping 된 시작 주소"], "a": 0, "w": "첫 호출은 PLT → GOT(0x401050) → Resolver(_dl_runtime_resolve) 로 가서 greet 를 찾고 GOT 에 0x7ffff7fb9119 를 기록한 뒤 실행합니다. 두 번째부터는 GOT 에서 바로 greet 로 갑니다.", "an": "4-5 gdb · C1-4"}, {"p": "<code>LD_DEBUG=bindings ./main_lazy<\/code> 에서 greet 의 binding 줄이 나타나는 횟수와 시점은 언제입니까?", "o": ["프로그램 시작 시 한 번, 호출마다 한 번씩", "greet 를 호출할 때마다 매번", "프로그램이 끝날 때 한 번", "첫 번째 hello 직전에 한 번만"], "a": 3, "w": "Lazy Binding 은 함수별로 처음 호출될 때 한 번만 찾습니다. greet_count 는 그것이 호출되는 시점(두 번의 hello 뒤)에 binding 됩니다.", "an": "4-4 LD_DEBUG"}, {"p": "최신 Ubuntu 의 gcc 기본값인 BIND_NOW + RELRO 에 대한 설명으로 알맞은 것은 무엇입니까?", "o": ["Library 를 실행 File 안에 복사해 넣는다", "main 이전에 GOT 를 모두 채우고 mprotect 로 읽기 전용으로 바꿔 GOT Overwrite 공격을 막는다", "GOT 를 없애고 call 명령에 주소를 직접 적는다", "함수를 처음 호출할 때 GOT 를 채우고 계속 쓰기 가능하게 둔다"], "a": 1, "w": "Full RELRO 는 시작이 조금 느린 대신 실행 중 GOT 가 읽기 전용이 됩니다. strace 의 mprotect(…, PROT_READ) 줄이 이것입니다. 그래서 ltrace 가 끼어들 지점을 찾지 못합니다.", "an": "4-7 표 · C1-4 공격 흉내"}, {"p": "아래 hook.c 를 libhook.so 로 만들어 <code>LD_PRELOAD=./libhook.so ./dice<\/code> 로 실행하면 주사위 결과는 어떻게 됩니까?", "o": ["실행할 때마다 다른 무작위 값", "dice 를 다시 Build 해야 바뀐다", "6 6 6 6 6", "5 5 5 5 5"], "a": 2, "w": "Loader 는 Load 된 순서대로 Symbol 을 찾고 LD_PRELOAD Library 가 가장 먼저 Load 됩니다. rand 가 항상 5 이므로 5 % 6 + 1 = 6 입니다. dice 를 다시 Build 할 필요가 없습니다.", "an": "4-8", "c": "int rand(void) { return 5; }\n/* dice: rand() % 6 + 1 을 5번 출력 */"}, {"p": "LD_PRELOAD 로 write 를 가로채는 Library 를 만들어도 L02 의 raw_syscall 에는 효과가 없습니다. 이유는 무엇입니까?", "o": ["raw_syscall 이 setuid 프로그램이기 때문", "raw_syscall 은 libc 함수를 거치지 않고 syscall 명령을 직접 실행하기 때문", "raw_syscall 은 PIE 가 아니기 때문", "LD_PRELOAD 는 write 만 가로챌 수 없기 때문"], "a": 1, "w": "LD_PRELOAD 는 Dynamic Link 된 Library 함수 호출만 가로챕니다. syscall 명령을 직접 실행하는 코드, Static 실행 File, setuid 프로그램에는 효과가 없습니다.", "an": "4-8 WARNING"}, {"p": "<code>dlopen(\"./libgreet.so\", RTLD_NOW)<\/code> 로 Load 하는 plugin_main 을 <code>ldd<\/code> 로 보면 libgreet.so 가 나오지 않는 이유는 무엇입니까?", "o": ["dlopen 한 Library 는 Memory 에 올라가지 않기 때문", "ldd 는 현재 Directory 의 Library 를 표시하지 않기 때문", "RTLD_NOW 가 Library 를 Static 으로 바꾸기 때문", "NEEDED 에 없고 실행 중에 프로그램이 직접 Load 하기 때문"], "a": 3, "w": "ldd 는 실행 File 의 NEEDED 목록을 보여 줍니다. dlopen 은 Plugin, Python C 확장 Module 처럼 실행 중에 Load 하는 방식입니다.", "an": "4-9"}]}, {"t": "L05 · execve 이후 main()이 실행되기까지", "anim": "C1-5 execve → main", "qs": [{"p": "Dynamic Link 된 hello 를 gdb 의 <code>starti<\/code> 로 멈췄을 때 실행 위치는 어디입니까?", "o": ["ld-linux-x86-64.so.2 의 _start", "libc 의 __libc_start_main", "hello 의 main", "hello 의 _start"], "a": 0, "w": "PT_INTERP 가 있으면 Kernel 은 Dynamic Loader 의 Entry Point 로 복귀합니다. 이 시점의 Memory Map 에는 실행 File, vDSO, ld.so, Stack 만 있고 libc 는 아직 없습니다.", "an": "5-5 · C1-5 7단계"}, {"p": "execve 가 기존 주소 공간을 버린 뒤에도 <b>유지되는<\/b> 것은 무엇입니까?", "o": ["다른 Thread 들", "등록해 둔 Signal Handler 함수", "PID 와 O_CLOEXEC 가 아닌 열린 fd", "Heap 과 Stack 의 내용"], "a": 2, "w": "주소 공간 전체, Signal Handler(기본값으로), 다른 Thread 는 버려집니다. PID·PPID, 열린 fd, 현재 Directory, umask 는 유지됩니다. 그래서 Shell 의 Redirection 이 동작합니다.", "an": "5-3 Q1 표"}, {"p": "500MB 짜리 실행 File 도 execve 가 순식간에 끝나는 이유는 무엇입니까?", "o": ["Kernel 이 실행 File 을 미리 압축해 두기 때문", "execve 가 Background Thread 로 읽기 때문", "LOAD Segment 를 read 하지 않고 mmap 으로 대응 관계만 기록하기 때문", "실행 File 은 항상 Page Cache 에 상주하기 때문"], "a": 2, "w": "mmap 은 \"이 주소 범위는 이 File 의 이 부분\" 이라는 대응만 만듭니다. 실제 내용은 처음 접근할 때 Page 단위로 올라옵니다(Demand Paging, Chapter 2).", "an": "5-3 Q2"}, {"p": "프로그램이 시작할 때 Kernel 이 새 Stack 꼭대기(rsp 위치)에 처음 놓는 값은 무엇입니까?", "o": ["argv[0] 문자열", "argc", "main 의 복귀 주소", "auxv[0]"], "a": 1, "w": "rsp 가 가리키는 곳에 argc, 그 위로 argv[], NULL, envp[], NULL, auxv[] 순입니다. gdb 에서 x/gd $rsp 로 argc 를 확인했습니다.", "an": "5-4 그림 · 5-5"}, {"p": "Kernel 이 auxv 로 Dynamic Loader 에게 알려 주는 정보 중, 자기 일을 마친 ld.so 가 점프할 주소는 무엇입니까?", "o": ["AT_ENTRY", "AT_BASE", "AT_PHDR", "AT_RANDOM"], "a": 0, "w": "AT_ENTRY 는 실행 File 의 Entry Point(_start), AT_BASE 는 ld.so 자신의 주소, AT_PHDR 은 실행 File 의 Program Header 위치, AT_RANDOM 은 Stack Protector 용 Random 값의 주소입니다.", "an": "5-4 auxv 표"}, {"p": "strace ./hello 의 줄들 중 <b>main 이 실행된 결과<\/b>에 해당하는 것은 무엇입니까?", "o": ["openat(AT_FDCWD, &quot;/etc/ld.so.cache&quot;, …)", "mmap(…, PROT_READ|PROT_EXEC, …, 3, 0x28000)", "write(1, &quot;hello\\n&quot;, 6) = 6", "mprotect(0x7f…, 16384, PROT_READ)"], "a": 2, "w": "ld.so.cache 열기, libc 의 LOAD mmap, RELRO mprotect 는 모두 main 이전에 ld.so 가 한 일입니다. main 은 29번째 줄쯤(fstat, brk, write)에서야 시작됩니다.", "an": "5-2 표"}, {"p": "<code>_start<\/code> 가 하는 일로 알맞은 것은 무엇입니까?", "o": ["Kernel 에게 Stack 을 만들어 달라고 요청한다", "Stack 에서 argc·argv 를 꺼내 main 의 주소를 인자로 __libc_start_main 을 호출한다", "Library 를 찾아 mmap 하고 GOT 를 채운다", "main 을 직접 call 하고 return 값을 Kernel 에 돌려준다"], "a": 1, "w": "_start(crt1.o)는 main 을 직접 부르지 않고 libc 의 __libc_start_main 에 Callback 으로 넘깁니다. Library Mapping 과 GOT 는 ld.so 의 일입니다. _start 의 마지막 명령은 hlt 입니다.", "an": "5-6 disassemble"}, {"p": "ctor.c 의 출력 순서로 알맞은 것은 무엇입니까?", "o": ["constructor → main → atexit → destructor", "main → atexit → constructor → destructor", "constructor → main → destructor → atexit", "main → constructor → destructor → atexit"], "a": 0, "w": "__libc_start_main 이 constructor(.init_array)를 부른 뒤 main 을 호출하고, main 의 return 값으로 exit() 를 부릅니다. exit 는 atexit Handler(역순) → destructor(.fini_array) → stdio Flush → exit_group 순입니다.", "an": "5-6 ctor", "c": "__attribute__((constructor)) static void c(void) { puts(&quot;constructor&quot;); }\n__attribute__((destructor))  static void d(void) { puts(&quot;destructor&quot;); }\nstatic void a(void) { puts(&quot;atexit&quot;); }\nint main(void) { atexit(a); puts(&quot;main&quot;); return 0; }"}, {"p": "libc 없이 <code>_start<\/code> 를 직접 작성한 nostart 에서, exit System Call 없이 _start 를 return 하면 어떻게 됩니까?", "o": ["Kernel 이 자동으로 exit(0) 처리한다", "Shell 로 돌아가 $? 가 0 이 된다", "main 으로 돌아가 다시 실행된다", "돌아갈 주소가 Stack 에 없어 Segmentation fault 가 난다"], "a": 3, "w": "_start 는 누군가 call 한 것이 아니라 Kernel 이 점프시킨 것입니다. Stack 의 꼭대기에는 복귀 주소가 아니라 argc 가 있으므로 ret 하면 엉뚱한 곳으로 가서 죽습니다.", "an": "5-7 WARNING · 빈칸 5-1"}, {"p": "Static 실행 File(hello_static)의 실행 과정에서 Dynamic 실행 File 과 비교해 <b>사라지는<\/b> 단계는 무엇입니까?", "o": ["Kernel 이 PT_LOAD 를 mmap 하는 과정", "__libc_start_main 이 main 을 호출하는 과정", "Stack 에 argc·argv·envp·auxv 를 넣는 과정", "ld.so 가 ld.so.cache 를 열고 libc 를 찾아 mmap 하는 과정"], "a": 3, "w": "Static 은 PT_INTERP 가 없으므로 Kernel 이 곧바로 실행 File 의 _start 로 복귀합니다. Library 를 찾고 올리는 openat·mmap·mprotect 가 통째로 없어 시작 System Call 이 10개 안팎입니다.", "an": "5-9 · C1-5 Static 탭"}]}];
+let tab=0;const ans=Q.map(s=>s.qs.map(()=>null));const graded=Q.map(()=>false);
+function hash(s){let h=5381;for(const c of s)h=((h<<5)+h+c.charCodeAt(0))>>>0;return h.toString(16).padStart(8,'0').slice(-4);}
+function codeFor(name,t,score){return `${t}${'ABCDEFGHIJK'[10-score]||'K'}-${hash(`${name.trim()}|${t}|${score}|lsp2-ch01`)}`;}
+function scoreOf(i){return ans[i].filter((a,k)=>a===Q[i].qs[k].a).length;}
+function strip(h){const d=document.createElement('div');d.innerHTML=h;return d.textContent;}
+function renderTabs(){$('#tabs').innerHTML=Q.map((s,i)=>{const n=ans[i].filter(a=>a!==null).length;return `<button class="${i===tab?'active':''} ${graded[i]?'graded':''}" data-i="${i}">L0${i+1}<span class="s">${graded[i]?scoreOf(i)+'/10':n+'/10'}</span></button>`;}).join('');$('#tabs').querySelectorAll('button').forEach(b=>b.onclick=()=>{tab=+b.dataset.i;render();window.scrollTo({top:0});});}
+function render(){renderTabs();const s=Q[tab];const g=graded[tab];
+  $('#sheet').innerHTML=`<div class="head"><span class="t">${s.t}</span><span class="a">🎬 ${s.anim}</span></div>`+s.qs.map((q,k)=>{const a=ans[tab][k];
+    return `<div class="q ${g&&a===null?'unans':''}"><div class="n">문항 ${k+1}</div><div class="p">${q.p}</div>${q.c?`<pre class="qc">${q.c}</pre>`:``}<div class="opts">${q.o.map((o,j)=>{let cls='';if(g){if(j===q.a)cls='ok';else if(j===a)cls='bad';}else if(j===a)cls='sel';return `<button class="opt ${cls}" data-k="${k}" data-j="${j}" ${g?'disabled':''}>${'①②③④'[j]} ${o}</button>`;}).join('')}</div>${g?`<div class="fb ${a===q.a?'ok':'bad'}">${a===null?'미응답. ':(a===q.a?'정답. ':'오답. ')}${q.w}<span class="anim">확인: ${q.an}</span></div>`:''}</div>`;}).join('');
+  $('#sheet').querySelectorAll('.opt').forEach(b=>b.onclick=()=>{const k=+b.dataset.k,j=+b.dataset.j;ans[tab][k]=(ans[tab][k]===j?null:j);render();});
+  $('#gradeBtn').disabled=g;$('#gradeBtn').textContent=g?'채점 완료':'채점하기';
+  const nm=$('#name').value;
+  if(g){const sc=scoreOf(tab);$('#rscore').textContent=`${sc}/10`;if(nm.trim()){$('#rcode').textContent=codeFor(nm,tab+1,sc);$('#rhint').textContent='결과 코드';}else{$('#rcode').textContent='—';$('#rhint').textContent='이름을 입력하면 결과 코드가 나옵니다.';}}
+  else{$('#rcode').textContent='—';$('#rscore').textContent='';const n=ans[tab].filter(a=>a!==null).length;$('#rhint').textContent=`L0${tab+1}: ${n}/10 골랐습니다. 채점하기를 누르면 잠깁니다.`;}
+}
+$('#gradeBtn').onclick=()=>{const n=ans[tab].filter(a=>a!==null).length;if(n<10&&!confirm(`아직 ${10-n}문항을 고르지 않았습니다. 그래도 채점할까요? (미응답은 오답 처리)`))return;graded[tab]=true;render();};
+$('#name').addEventListener('input',render);
+
+/* ── 제출 대화상자 ── */
+let lastHtml='',lastText='';
+function buildReport(){
+  const nm=$('#name').value.trim()||'(이름 없음)';const ds=new Date().toLocaleString('ko-KR');
+  let h=`<h3>LSP2 Chapter 1 개념 워크시트 — 오답 정리</h3><div class="meta">${nm} · ${ds}</div>`;
+  let t=`LSP2 Chapter 1 개념 워크시트 — 오답 정리\n이름: ${nm}\n일시: ${ds}\n\n`;
+  let any=false;
+  Q.forEach((s,i)=>{if(!graded[i])return;
+    const wrong=s.qs.map((q,k)=>({q,k,a:ans[i][k]})).filter(x=>x.a!==x.q.a);
+    h+=`<div class="sec">${s.t}</div>`;t+=`### ${s.t}\n`;
+    if(!wrong.length){h+=`<div class="ok" style="margin:4px 0 8px">오답 없음</div>`;t+=`오답 없음\n\n`;return;}
+    any=true;
+    h+=`<table><tr><th>#</th><th>문항</th><th>내 답</th><th>정답</th></tr>`;t+=`| # | 문항 | 내 답 | 정답 |\n|---|---|---|---|\n`;
+    wrong.forEach(({q,k,a})=>{const my=a===null?'미응답':'①②③④'[a]+' '+strip(q.o[a]);const co='①②③④'[q.a]+' '+strip(q.o[q.a]);const qt=strip(q.p).replace(/\s+/g,' ').slice(0,70);
+      h+=`<tr><td class="r">${k+1}</td><td>${qt}</td><td class="bad">${my}</td><td class="ok">${co}</td></tr>`;
+      t+=`| ${k+1} | ${qt.replace(/\|/g,'/')} | ${my.replace(/\|/g,'/')} | ${co.replace(/\|/g,'/')} |\n`;});
+    h+=`</table>`;t+=`\n`;});
+  const notGraded=Q.map((s,i)=>graded[i]?null:i+1).filter(x=>x);
+  if(notGraded.length){h+=`<div class="meta" style="margin-top:10px">미채점: L0${notGraded.join(', L0')}</div>`;t+=`미채점: L0${notGraded.join(', L0')}\n`;}
+  lastHtml=h;lastText=t;return h;
+}
+$('#submitBtn').onclick=()=>{if(!graded.some(x=>x)){alert('먼저 한 Lecture 이상 채점하기를 눌러 주세요.');return;}$('#dgBody').innerHTML=buildReport();$('#toast').textContent='';$('#dlg').showModal();};
+$('#closeBtn').onclick=()=>$('#dlg').close();
+function copyRich(html,text){
+  // 1) copy 이벤트에 두 형식을 직접 실어 보내기 (사용자 클릭 안에서 동기 실행 — file:// 에서도 동작)
+  let done=false;
+  const onCopy=e=>{e.clipboardData.setData('text/html',html);e.clipboardData.setData('text/plain',text);e.preventDefault();done=true;};
+  document.addEventListener('copy',onCopy);
+  try{
+    const body=$('#dgBody');const sel=window.getSelection();const range=document.createRange();range.selectNodeContents(body);sel.removeAllRanges();sel.addRange(range);
+    document.execCommand('copy');
+    sel.removeAllRanges();
+  }catch(e){}
+  document.removeEventListener('copy',onCopy);
+  return done;
+}
+$('#captureBtn').onclick=async()=>{
+  const htmlDoc=`<meta charset="utf-8">`+lastHtml.replace(/ class="[^"]*"/g,'').replace(/<table>/g,'<table border="1" style="border-collapse:collapse">');
+  if(copyRich(htmlDoc,lastText)){$('#toast').textContent='복사됨 — 노션 페이지에서 Ctrl+V 로 붙여 넣으세요.';return;}
+  // 2) 비동기 Clipboard API
+  try{
+    if(navigator.clipboard&&window.ClipboardItem){
+      await navigator.clipboard.write([new ClipboardItem({'text/html':new Blob([htmlDoc],{type:'text/html'}),'text/plain':new Blob([lastText],{type:'text/plain'})})]);
+    }else{await navigator.clipboard.writeText(lastText);}
+    $('#toast').textContent='복사됨 — 노션 페이지에서 Ctrl+V 로 붙여 넣으세요.';return;
+  }catch(e){}
+  // 3) 최종: 텍스트 영역 선택 복사
+  try{
+    const ta=document.createElement('textarea');ta.value=lastText;ta.style.position='fixed';ta.style.opacity='0';$('#dlg').appendChild(ta);ta.focus();ta.select();
+    const ok=document.execCommand('copy');ta.remove();
+    $('#toast').textContent=ok?'텍스트(마크다운 표)로 복사됨 — 노션에서 Ctrl+V.':'복사 실패 — 대화상자 내용을 드래그해 Ctrl+C 로 복사하세요.';
+  }catch(e){$('#toast').textContent='복사 실패 — 대화상자 내용을 드래그해 Ctrl+C 로 복사하세요.';}
+};
+render();
+</script>
+</body>
+</html>

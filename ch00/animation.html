@@ -1,0 +1,352 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>고급 Linux System Programming II · Chapter 0 — 눈으로 보는 2가지 (Roadmap · 환경 점검)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper:#EEF1F5;
+    --panel:#FFFFFF;
+    --ink:#1B2A41;
+    --ink-soft:#5B6B80;
+    --line:#C9D1DC;
+    --blue:#2457C5;
+    --blue-soft:#DCE6FA;
+    --red:#D6452E;
+    --red-soft:#FBE3DF;
+    --green:#178A67;
+    --green-soft:#DDF2EA;
+    --amber:#C98A12;
+    --amber-soft:#FBF0D3;
+    --mono:'IBM Plex Mono', ui-monospace, 'Cascadia Mono', Consolas, monospace;
+    --sans:'IBM Plex Sans KR', 'Pretendard', 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif;
+    --t:.35s;
+  }
+  @media (prefers-reduced-motion: reduce){ :root{ --t:0s; } *{ animation:none !important; transition:none !important; } }
+
+  *{ box-sizing:border-box; }
+  html,body{ margin:0; height:100%; }
+  body{
+    font-family:var(--sans); color:var(--ink); background:var(--paper);
+    background-image:
+      linear-gradient(rgba(27,42,65,.045) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(27,42,65,.045) 1px, transparent 1px);
+    background-size:24px 24px;
+    font-size:16px; line-height:1.55;
+  }
+  code, .mono{ font-family:var(--mono); }
+
+  .app{ display:grid; grid-template-columns:260px 1fr; min-height:100vh; }
+  nav{
+    background:var(--ink); color:#fff; padding:28px 20px;
+    position:sticky; top:0; height:100vh; overflow:auto;
+  }
+  nav h1{ font-size:15px; font-weight:500; margin:0 0 4px; letter-spacing:.01em; color:#AEBBD1; }
+  nav .day{ font-size:26px; font-weight:600; margin:0 0 26px; line-height:1.2; }
+  nav ol{ list-style:none; margin:0; padding:0; counter-reset:lesson; }
+  nav li{ margin:0; }
+  nav button{
+    all:unset; display:grid; grid-template-columns:32px 1fr; gap:10px; align-items:baseline;
+    width:100%; padding:9px 10px; border-radius:6px; cursor:pointer; font-size:14.5px; line-height:1.35;
+    color:#D9E1EC;
+  }
+  nav button::before{ counter-increment:lesson; content:"0." counter(lesson); font-family:var(--mono); font-size:11px; color:#8A9BB5; }
+  nav button:hover{ background:rgba(255,255,255,.07); }
+  nav button[aria-current="true"]{ background:var(--blue); color:#fff; }
+  nav button[aria-current="true"]::before{ color:#C9D8F7; }
+  nav button:focus-visible{ outline:2px solid #fff; outline-offset:2px; }
+  nav .hint{ margin-top:28px; font-size:12.5px; color:#8A9BB5; line-height:1.5; }
+  nav .hint kbd{ font-family:var(--mono); background:rgba(255,255,255,.12); padding:1px 5px; border-radius:3px; }
+
+  main{ padding:36px 44px 80px; max-width:1100px; }
+  section.lesson{ display:none; }
+  section.lesson.active{ display:block; }
+  .lesson header{ margin-bottom:22px; }
+  .lesson h2{ font-size:30px; font-weight:600; margin:0 0 6px; line-height:1.25; }
+  .lesson header p{ margin:0; color:var(--ink-soft); font-size:16px; max-width:64ch; }
+
+  .stage{
+    background:var(--panel); border:1px solid var(--line); border-radius:10px; padding:26px;
+    box-shadow:0 1px 0 rgba(27,42,65,.06);
+  }
+  .controls{ display:flex; flex-wrap:wrap; gap:10px; align-items:center; margin-bottom:20px; }
+  .controls label{ font-size:14px; color:var(--ink-soft); display:flex; align-items:center; gap:6px; }
+  button.btn{
+    font:inherit; font-size:14px; font-weight:500; padding:8px 14px; border-radius:6px; cursor:pointer;
+    border:1px solid var(--ink); background:var(--ink); color:#fff;
+  }
+  button.btn.secondary{ background:#fff; color:var(--ink); border-color:var(--line); }
+  button.btn:disabled{ opacity:.4; cursor:default; }
+  button.btn:focus-visible, select:focus-visible, input:focus-visible{ outline:2px solid var(--blue); outline-offset:2px; }
+  select, input[type=number], input[type=text]{
+    font:inherit; font-size:14px; padding:7px 10px; border:1px solid var(--line); border-radius:6px; background:#fff; color:var(--ink);
+  }
+  input[type=number], input[type=text]{ font-family:var(--mono); }
+  .toggle{ display:inline-flex; align-items:center; gap:8px; cursor:pointer; user-select:none; }
+  .toggle input{ position:absolute; opacity:0; width:0; height:0; }
+  .toggle .sw{ width:38px; height:22px; border-radius:11px; background:var(--line); position:relative; transition:background var(--t); }
+  .toggle .sw::after{ content:""; position:absolute; top:3px; left:3px; width:16px; height:16px; border-radius:50%; background:#fff; transition:transform var(--t); }
+  .toggle input:checked + .sw{ background:var(--blue); }
+  .toggle input:checked + .sw::after{ transform:translateX(16px); }
+  .toggle input:focus-visible + .sw{ outline:2px solid var(--blue); outline-offset:2px; }
+
+  .note{ margin-top:18px; padding:14px 16px; border-left:3px solid var(--blue); background:var(--blue-soft); border-radius:0 6px 6px 0; font-size:14.5px; }
+  .note.warn{ border-color:var(--red); background:var(--red-soft); }
+  .note.ok{ border-color:var(--green); background:var(--green-soft); }
+  .note code{ background:rgba(255,255,255,.7); padding:1px 5px; border-radius:3px; }
+
+  pre.code{
+    font-family:var(--mono); font-size:13.5px; background:#F6F8FB; border:1px solid var(--line); border-radius:6px;
+    padding:14px 16px; margin:0; overflow:auto; line-height:1.55; white-space:pre;
+  }
+  pre.code .dim{ color:#9AA7B8; }
+  pre.code .hi{ background:var(--amber-soft); }
+  pre.code .err{ background:var(--red-soft); color:var(--red); }
+
+    .readout{ display:grid; grid-template-columns:repeat(auto-fit,minmax(170px,1fr)); gap:12px; margin-top:16px; }
+  .readout div{ padding:12px 14px; border:1px solid var(--line); border-radius:6px; background:#F6F8FB; }
+  .readout b{ display:block; font-size:12.5px; font-weight:500; color:var(--ink-soft); margin-bottom:2px; }
+  .readout span{ font-family:var(--mono); font-size:17px; font-weight:600; }
+  /* ---------- shared ---------- */
+  .mcell{ display:inline-flex; flex-direction:column; align-items:center; min-width:70px; border:2px solid var(--ink); border-radius:6px; background:#fff; overflow:hidden; transition:all var(--t); }
+  .mcell .a{ font-family:var(--mono); font-size:10px; color:var(--ink-soft); background:#F6F8FB; width:100%; text-align:center; padding:3px 4px; border-bottom:1px solid var(--line); }
+  .mcell .v{ font-family:var(--mono); font-size:20px; font-weight:600; padding:8px 6px; }
+  .mcell .n{ font-family:var(--mono); font-size:11px; color:var(--blue); padding:0 4px 6px; }
+  .mcell.hi{ border-color:var(--blue); background:var(--blue-soft); }
+  .mcell.bad{ border-color:var(--red); background:var(--red-soft); }
+  .mcell.ok{ border-color:var(--green); background:var(--green-soft); }
+  .mcell.dim{ opacity:.35; }
+  .row{ display:flex; gap:10px; flex-wrap:wrap; align-items:flex-end; }
+  .lab{ font-size:12.5px; color:var(--ink-soft); margin:14px 0 6px; }
+  .term{ font-family:var(--mono); font-size:13.5px; background:var(--ink); color:#D9E1EC; padding:12px 16px; border-radius:6px; min-height:60px; white-space:pre-wrap; margin-top:16px; }
+  .term .r{ color:#FF9B8A; } .term .g{ color:#7FE0B8; } .term .y{ color:#FFD27F; } .term .c{ color:#8A9BB5; }
+  svg text{ font-family:var(--mono); }
+  .shake{ animation:shake .4s; } @keyframes shake{ 0%,100%{transform:none} 25%{transform:translateX(-5px)} 75%{transform:translateX(5px)} }
+  .pop-in{ animation:popin .3s ease-out; } @keyframes popin{ from{ transform:scale(.8); opacity:0; } }
+  .fade-out{ animation:fadeout .4s forwards; } @keyframes fadeout{ to{ opacity:0; transform:translateY(-8px); } }
+  .two{ display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:24px; }
+  .tabs2{ display:flex; gap:6px; flex-wrap:wrap; }
+  .tabs2 button{ font:inherit; font-size:13px; padding:7px 12px; border-radius:6px; border:1px solid var(--line); background:#fff; cursor:pointer; }
+  .tabs2 button.on{ background:var(--ink); color:#fff; border-color:var(--ink); }
+  .fig svg{ width:100%; height:auto; background:#fff; border:1px solid var(--line); border-radius:6px; display:block; }
+  .fig text{ font-size:11px; fill:var(--ink-soft); }
+  .qslots{ display:flex; gap:6px; margin:10px 0; }
+  .qslots span{ flex:1; height:46px; border:2px solid var(--line); border-radius:6px; display:grid; place-items:center; font-family:var(--mono); font-size:13px; background:#fff; transition:all var(--t); }
+  .qslots span.full{ background:var(--blue-soft); border-color:var(--blue); }
+  .fs{ display:grid; grid-template-columns:repeat(16,1fr); gap:3px; }
+  .fs span{ height:22px; border-radius:3px; background:#EEF1F5; transition:background var(--t); }
+  .fs span.used{ background:#8FB0EA; } .fs span.dirty{ background:var(--amber); } .fs span.hot{ outline:2px solid var(--red); }
+  .crash{ font-family:var(--mono); font-size:12.5px; background:#0E1726; color:#D9E1EC; border-radius:8px; padding:12px 14px; line-height:1.7; }
+  .crash span.ln{ display:block; cursor:pointer; border-radius:3px; padding:0 4px; }
+  .crash span.ln:hover{ background:#22324A; } .crash span.ln.on{ background:#3A2A10; color:#FFD27A; }
+  .flow{ position:relative; }
+  table.rt{ border-collapse:collapse; width:100%; font-family:var(--mono); font-size:12.5px; }
+  table.rt th, table.rt td{ border:1px solid var(--line); padding:6px 8px; text-align:left; }
+  table.rt th{ background:var(--paper); font-family:var(--sans); }
+  table.rt tr.hot td{ background:var(--blue-soft); font-weight:700; }
+  @media (max-width:900px){ .two{ grid-template-columns:1fr; } }
+  @media (max-width:860px){ .app{ display:block; } nav{ position:static; height:auto; } main{ padding:20px 12px 60px; } .stage{ padding:16px; } }
+</style>
+</head>
+<body>
+<div class="app">
+  <nav aria-label="Unit 선택">
+    <h1>고급 Linux System Programming II</h1>
+    <p class="day">Chapter 0<br>눈으로 보는 2가지</p>
+    <ol id="navlist">
+      <li><button data-go="1" aria-current="true">8 Chapter Roadmap</button></li>
+      <li><button data-go="2">환경 점검 시뮬레이터</button></li>
+    </ol>
+    <p class="hint">키보드 <kbd>←</kbd> <kbd>→</kbd> 로 Unit 이동<br><kbd>Space</kbd> 다음 단계</p>
+    <p class="hint">강의 자료: <a href="lecture.html" style="color:#C9D8F7">lecture.html</a><br>워크시트: <a href="worksheet.html" style="color:#C9D8F7">worksheet.html</a></p>
+  </nav>
+  <main>
+
+  <section class="lesson active" id="l1">
+    <header><h2>C0-1 · Process 단면도로 보는 8 Chapter</h2><p>실행 중인 Process 하나를 세로로 자른 단면도입니다. 단계를 넘기며 각 Chapter 가 어느 층을 다루는지, 그 Chapter 를 마치면 답할 수 있는 질문이 무엇인지 확인하세요. Chapter 7 과 8 은 켜지는 방식이 다릅니다.</p></header>
+    <div class="stage">
+      <div class="controls">
+        <button class="btn secondary" id="r-prev">이전</button>
+        <button class="btn" id="r-next">다음 단계</button>
+        <button class="btn secondary" id="r-reset">처음으로</button>
+        <div class="tabs2" id="r-jump"></div>
+      </div>
+      <div class="fig"><svg viewBox="0 0 1000 420" id="r-svg"></svg></div>
+      <div class="two" style="margin-top:14px">
+        <div><div class="lab" style="margin-top:0">이 Chapter 를 마치면 답할 수 있는 질문</div><div class="note" id="r-q" style="margin-top:0"></div></div>
+        <div><div class="lab" style="margin-top:0">Lecture</div><table class="rt" id="r-lec"></table></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="lesson" id="l2">
+    <header><h2>C0-2 · 내 VM 은 실습할 수 있는 상태인가</h2><p>VirtualBox VM 설정을 스위치로 맞춘 뒤 <code>env_check.sh</code> 를 실행해 보세요. [WARN] 과 [FAIL] 하나하나가 어느 Chapter 실습에 영향을 주는지 오른쪽에 나타납니다. 모든 FAIL 을 없애 보세요.</p></header>
+    <div class="stage">
+      <div class="controls">
+        <label>Guest OS <select id="e-os"><option value="2604" selected>Ubuntu 26.04 (Kernel 7.0)</option><option value="2404">Ubuntu 24.04 (Kernel 6.8)</option><option value="2204">Ubuntu 22.04 (Kernel 5.15)</option></select></label>
+        <label>Processor <select id="e-cpu"><option value="1">1개</option><option value="2" selected>2개</option><option value="4">4개</option></select></label>
+        <label>Memory <select id="e-mem"><option value="2048">2048 MB</option><option value="4096" selected>4096 MB</option></select></label>
+        <label>Hypervisor <select id="e-hv"><option value="vbox" selected>VirtualBox</option><option value="kvm">KVM (PMU 노출)</option><option value="native">Native Linux</option></select></label>
+      </div>
+      <div class="controls">
+        <label class="toggle"><input type="checkbox" id="e-pkg"><span class="sw"></span>sudo ./install_tools.sh 실행함</label>
+        <label class="toggle"><input type="checkbox" id="e-root"><span class="sw"></span>sudo 로 실행</label>
+        <label class="toggle"><input type="checkbox" id="e-uring"><span class="sw"></span>io_uring_disabled = 2 로 바꿔 둠</label>
+        <button class="btn" id="e-run">./env_check.sh</button>
+      </div>
+      <div class="two">
+        <div class="term" id="e-term" style="margin-top:0;min-height:330px"></div>
+        <div>
+          <div class="readout" style="margin-top:0"><div><b>OK</b><span id="e-ok">–</span></div><div><b>WARN</b><span id="e-warn">–</span></div><div><b>FAIL</b><span id="e-fail">–</span></div></div>
+          <div class="lab">영향받는 실습</div>
+          <table class="rt" id="e-impact"></table>
+          <div class="note" id="e-note"></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  </main>
+</div>
+
+<script>
+(function(){
+  'use strict';
+  const $=(s,r=document)=>r.querySelector(s), $$=(s,r=document)=>Array.from(r.querySelectorAll(s));
+  const NS='http://www.w3.org/2000/svg';
+  const el=(n,a,t)=>{ const e=document.createElementNS(NS,n); for(const k in a) e.setAttribute(k,a[k]); if(t!==undefined) e.textContent=t; return e; };
+  const esc=s=>String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;');
+  const MAXL=2; let cur=1;
+  function go(n){ cur=Math.max(1,Math.min(MAXL,n)); $$('.lesson').forEach(s=>s.classList.toggle('active',s.id==='l'+cur)); $$('#navlist button').forEach(b=>b.setAttribute('aria-current',b.dataset.go==cur?'true':'false')); history.replaceState(null,'','#l'+cur); window.scrollTo({top:0}); }
+  $$('#navlist button').forEach(b=>b.addEventListener('click',()=>go(+b.dataset.go)));
+  document.addEventListener('keydown',e=>{ if(['INPUT','SELECT','TEXTAREA'].includes(document.activeElement.tagName))return; if(e.key==='ArrowRight')go(cur+1); if(e.key==='ArrowLeft')go(cur-1); if(e.key===' '){ e.preventDefault(); if(cur===1&&!$('#r-next').disabled) $('#r-next').click(); if(cur===2) $('#e-run').click(); } });
+  if(/^#l[1-2]$/.test(location.hash)) go(+location.hash[2]);
+
+  /* ===================== L1 Roadmap ===================== */
+  // 층(box) 정의: id, x, y, w, h, title, sub
+  const BOX={
+    app:[40,40,380,52,'Application','내 코드 · main()'],
+    lib:[440,40,380,52,'glibc · ld.so','Wrapper · Dynamic Loader · pthread'],
+    ring:[40,124,780,40,'Shared Ring (SQ / CQ)','User 와 Kernel 이 함께 보는 Memory'],
+    sys:[40,180,780,34,'System Call 경계','syscall · entry_SYSCALL_64'],
+    vfs:[40,230,180,58,'VFS · Page Cache','file_operations · Writeback'],
+    mm:[240,230,180,58,'Memory 관리','VMA · Page Table · Fault'],
+    sched:[440,230,180,58,'Scheduler · futex','Wait Queue · Wake up'],
+    ev:[640,230,180,58,'eventpoll · io_uring','Ready List · Completion'],
+    cpu:[40,320,250,52,'CPU','Ring 3/0 · TLB · Cache Line'],
+    ram:[305,320,250,52,'Physical Memory','Page Frame'],
+    disk:[570,320,250,52,'Storage','Block Device']};
+  const CH=[
+    {n:'0',t:'Chapter 0 · 출발점',on:['app','lib'],q:'기존 과정에서는 Application 과 glibc 층의 API 사용법을 배웠습니다. 이 과정은 그 아래로 내려갑니다. <b>다음 단계</b>를 누르세요.',lec:[['0.1','과정 소개'],['0.2','실습 환경 준비']]},
+    {n:'1',t:'Chapter 1 · 프로그램 실행과 System Call',on:['app','lib','sys','cpu'],q:'System Call 은 어떻게 Kernel 로 진입하는가? ELF 는 어떻게 Memory 에 올라가는가? execve 이후 main() 까지 무슨 일이 일어나는가?',lec:[['L01','User Space에서 Kernel Space까지'],['L02','System Call Entry'],['L03','ELF 실행 파일 내부 구조'],['L04','Dynamic Loader와 Shared Library'],['L05','execve 이후 main()까지']]},
+    {n:'2',t:'Chapter 2 · Virtual Memory',on:['mm','cpu','ram'],q:'Virtual Address 는 어떻게 Physical Address 로 변환되는가? TLB 는 왜 필요한가? malloc(1GB) 직후 Memory 사용량이 늘지 않는 이유는?',lec:[['L06','Process Virtual Address Space'],['L07','Virtual Address와 Page Table'],['L08','TLB와 Address Translation'],['L09','Page Fault 내부 동작'],['L10','mmap과 Memory Mapped File']]},
+    {n:'3',t:'Chapter 3 · Page Cache와 Advanced File I/O',on:['vfs','ram','disk'],q:'read() 는 항상 Disk 를 읽는가? write() 가 성공하면 Disk 에 저장된 것인가? fsync 는 무엇을 보장하는가?',lec:[['L11','read/write 뒤에서 일어나는 일'],['L12','VFS와 file_operations'],['L13','Page Cache'],['L14','Buffered / Direct I/O / mmap'],['L15','Writeback, fsync']]},
+    {n:'4',t:'Chapter 4 · Advanced Thread Synchronization',on:['lib','sched','cpu'],q:'mutex 는 언제 Kernel 에 진입하는가? Memory Barrier 는 왜 필요한가? False Sharing 은 왜 성능을 떨어뜨리는가?',lec:[['L16','Race Condition을 CPU 관점에서'],['L17','Atomic과 CAS'],['L18','Memory Ordering과 Barrier'],['L19','Futex 내부 구조'],['L20','Lock Contention과 Lock-Free']]},
+    {n:'5',t:'Chapter 5 · Linux Event Driven Programming',on:['app','sys','ev'],q:'select 와 epoll 은 무엇이 다른가? Ready List 는 무엇인가? Edge Trigger 에서는 왜 끝까지 읽어야 하는가?',lec:[['L21','Blocking과 Non-Blocking'],['L22','select와 poll'],['L23','epoll 내부 구조'],['L24','Level / Edge Trigger'],['L25','eventfd · timerfd · signalfd · inotify']]},
+    {n:'6',t:'Chapter 6 · io_uring',on:['app','ring','ev','disk'],q:'io_uring 의 SQ 와 CQ 는 무엇인가? 왜 만들어졌는가? System Call 없이 I/O 를 요청할 수 있는가?',lec:[['L26','Async I/O는 왜 필요해졌는가'],['L27','io_uring Architecture'],['L28','SQ / CQ / SQE / CQE'],['L29','File Read / Write 실습'],['L30','심화와 기존 I/O 비교']]},
+    {n:'7',t:'Chapter 7 · Debugging, Tracing, Performance',on:'probe',q:'<b>층이 아니라 도구입니다.</b> 프로그램이 느릴 때 무엇부터 조사하는가? strace 와 perf 는 무엇이 다른가? eBPF 는 Kernel 을 어떻게 관찰하는가?',lec:[['L31','/proc'],['L32','strace · ltrace · gdb · core'],['L33','perf'],['L34','ftrace'],['L35','eBPF와 bpftrace']]},
+    {n:'8',t:'Chapter 8 · Isolation, Security',on:'fence',q:'<b>Process 를 둘러싼 울타리입니다.</b> Namespace 는 무엇을 격리하는가? Cgroup 은 무엇을 제한하는가? seccomp 는 어떻게 System Call 을 막는가?',lec:[['L36','Capability'],['L37','seccomp'],['L38','Namespace'],['L39','Cgroup'],['L40','Final Project']]},
+    {n:'★',t:'L40 · Linux Event & Process Monitor',on:'all',q:'마지막 Lecture 에서는 timerfd · signalfd · eventfd · inotify 를 하나의 epoll Loop 로 처리하는 Monitor 를 만들고, Capability · seccomp · Cgroup 으로 감싼 뒤 strace · perf · ftrace · bpftrace 로 분석합니다. 모든 층이 하나의 프로그램에서 연결됩니다.',lec:[['L40','Final Project']]}];
+  const R={i:0};
+  const PROBE={'0':'/proc','1':'strace','2':'perf','3':'ftrace','4':'bpftrace'};
+  function rDraw(){
+    const S=$('#r-svg'); S.innerHTML=''; const c=CH[R.i];
+    S.appendChild(el('text',{x:40,y:26,'font-size':12,fill:'#2457C5','font-weight':600},'User Space · Ring 3'));
+    S.appendChild(el('line',{x1:30,y1:172,x2:820,y2:172,stroke:'#D6452E','stroke-width':1.5,'stroke-dasharray':'6 5'}));
+    S.appendChild(el('text',{x:40,y:310,'font-size':12,fill:'#7A3E9D','font-weight':600},'Hardware'));
+    S.appendChild(el('text',{x:40,y:225,'font-size':12,fill:'#7A3E9D','font-weight':600},'Kernel · Ring 0'));
+    for(const k in BOX){ const b=BOX[k]; let on=false;
+      if(Array.isArray(c.on)) on=c.on.includes(k); else if(c.on==='all') on=true;
+      const fill=on?(k==='sys'?'#FBE3DF':(['cpu','ram','disk'].includes(k)?'#F3EEFB':'#DCE6FA')):'#F6F8FB';
+      const stroke=on?(k==='sys'?'#D6452E':(['cpu','ram','disk'].includes(k)?'#7A3E9D':'#2457C5')):'#C9D1DC';
+      const g=el('g',{}); g.appendChild(el('rect',{x:b[0],y:b[1],width:b[2],height:b[3],rx:8,fill,stroke,'stroke-width':on?2.5:1.5}));
+      g.appendChild(el('text',{x:b[0]+b[2]/2,y:b[1]+(b[3]>40?b[3]/2-3:b[3]/2+5),'text-anchor':'middle','font-size':13.5,'font-weight':600,fill:on?'#1B2A41':'#9AA7B8'},b[4]));
+      if(b[3]>40) g.appendChild(el('text',{x:b[0]+b[2]/2,y:b[1]+b[3]/2+14,'text-anchor':'middle','font-size':10.5,fill:on?'#5B6B80':'#B5BFCC'},b[5]));
+      S.appendChild(g); }
+    if(c.on==='probe'||c.on==='all'){ // 도구: 옆에서 들여다보는 화살표
+      const tools=[['/proc',60],['strace',176],['perf',250],['ftrace',262],['bpftrace',290]];
+      [['/proc · gdb',66],['strace',197],['ftrace',248],['bpftrace',272],['perf',346]].forEach(([t,y])=>{
+        S.appendChild(el('line',{x1:826,y1:y,x2:866,y2:y,stroke:'#178A67','stroke-width':3}));
+        S.appendChild(el('circle',{cx:872,cy:y,r:6,fill:'#178A67'}));
+        S.appendChild(el('text',{x:884,y:y+4,'font-size':12,'font-weight':600,fill:'#178A67'},t)); });
+    }
+    if(c.on==='fence'||c.on==='all'){
+      S.appendChild(el('rect',{x:24,y:12,width:812,height:284,rx:14,fill:'none',stroke:'#C98A12','stroke-width':3,'stroke-dasharray':'10 6'}));
+      S.appendChild(el('text',{x:430,y:400,'text-anchor':'middle','font-size':12.5,'font-weight':600,fill:'#C98A12'},'Namespace (보이는 것) · Cgroup (쓰는 양) · Capability (특권) · seccomp (System Call)'));
+    }
+    if(c.on==='probe') S.appendChild(el('text',{x:430,y:400,'text-anchor':'middle','font-size':12.5,'font-weight':600,fill:'#178A67'},'모든 층을 옆에서 들여다보는 관찰 도구'));
+  }
+  function rRender(){
+    rDraw(); const c=CH[R.i];
+    $('#r-q').innerHTML='<b>'+esc(c.t)+'</b><br>'+c.q; $('#r-q').className='note'+(R.i===CH.length-1?' ok':'');
+    $('#r-lec').innerHTML='<tr><th>번호</th><th>제목</th></tr>'+c.lec.map(l=>'<tr><td>'+l[0]+'</td><td style="font-family:var(--sans)">'+esc(l[1])+'</td></tr>').join('');
+    $('#r-prev').disabled=R.i===0; $('#r-next').disabled=R.i===CH.length-1;
+    $$('#r-jump button').forEach((b,k)=>b.classList.toggle('on',k===R.i));
+  }
+  $('#r-jump').innerHTML=CH.map(c=>'<button>'+c.n+'</button>').join('');
+  $$('#r-jump button').forEach((b,k)=>b.addEventListener('click',()=>{ R.i=k; rRender(); }));
+  $('#r-next').onclick=()=>{ R.i++; rRender(); }; $('#r-prev').onclick=()=>{ R.i--; rRender(); }; $('#r-reset').onclick=()=>{ R.i=0; rRender(); };
+  rRender();
+
+  /* ===================== L2 env_check 시뮬레이터 ===================== */
+  function check(){
+    const os=$('#e-os').value, cpu=+$('#e-cpu').value, mem=+$('#e-mem').value, hv=$('#e-hv').value, pkg=$('#e-pkg').checked, root=$('#e-root').checked, ur=$('#e-uring').checked;
+    const K={2604:['7.0.0-14-generic','Ubuntu 26.04.1 LTS'],2404:['6.8.0-45-generic','Ubuntu 24.04.3 LTS'],2204:['5.15.0-125-generic','Ubuntu 22.04.5 LTS']}[os];
+    const L=[], imp=[]; let ok=0,warn=0,fail=0;
+    const O=t=>{ L.push('<span class="g">  [ OK ]</span> '+esc(t)); ok++; };
+    const W=(t,h,ch)=>{ L.push('<span class="y">  [WARN]</span> '+esc(t)); L.push('<span class="c">         -> '+esc(h)+'</span>'); warn++; if(ch) imp.push(['WARN',t,ch]); };
+    const F=(t,h,ch)=>{ L.push('<span class="r">  [FAIL]</span> '+esc(t)); L.push('<span class="c">         -> '+esc(h)+'</span>'); fail++; if(ch) imp.push(['FAIL',t,ch]); };
+    const S=t=>L.push('\n== '+t);
+    S('1. System'); L.push('  Kernel : '+K[0]); L.push('  OS     : '+K[1]); O('x86_64 Architecture');
+    if(os==='2604') O('Ubuntu 26.04 LTS'); else W('Ubuntu '+os.slice(0,2)+'.'+os.slice(2)+' (강의 기준은 26.04 LTS)','출력과 Package 이름이 강의와 다를 수 있습니다','전체 (출력 차이)');
+    if(os==='2604') O('Kernel 7.0 이상'); else W('Kernel '+K[0].split('.').slice(0,2).join('.')+' (강의 기준은 7.0)','ftrace 함수 이름 등 Kernel 내부 관찰 결과가 다를 수 있습니다','Ch1 L02, Ch7 L34');
+    if(cpu>=2) O('CPU '+cpu+'개'); else F('CPU가 1개입니다','VirtualBox 설정 > 시스템 > 프로세서에서 2개 이상','Ch4 Race · Memory Ordering · False Sharing');
+    if(mem>=3500) O('Memory '+mem+'MB'); else W('Memory '+mem+'MB','4GB 이상 권장','Ch2 Page Fault · Ch3 Page Cache');
+    S('2. Build / Debug');
+    ['gcc','make','gdb','strace','ltrace','git'].forEach(t=>{ if(pkg||t==='gcc'&&false) O(t); else F(t+' 없음','sudo ./install_tools.sh',t==='strace'?'전체 (관찰의 기본 도구)':null); });
+    S('3. perf');
+    if(!pkg) F('perf 없음 또는 Kernel Version 불일치','sudo apt install linux-tools-generic linux-tools-$(uname -r)','Ch2 · Ch4 · Ch7 L33');
+    else { O('perf 실행 가능'); if(!root) W('일반 사용자 perf 사용이 제한되어 있습니다','sudo perf ... 또는 sudo sysctl kernel.perf_event_paranoid=1',null); O('Software Event (page-faults, context-switches)');
+      if(hv==='vbox') W('Hardware Counter 사용 불가 (cycles, cache-misses)','VirtualBox에서는 정상입니다. HW Counter 결과는 강의 화면을 참고합니다','Ch2 L08 · Ch4 L20 · Ch7 L33 (일부 장면)'); else O('Hardware Counter (cycles, cache-misses)'); }
+    S('4. ftrace'); O('tracefs: /sys/kernel/tracing');
+    if(root) O('function_graph tracer'); else L.push('<span class="c">  (available_tracers 확인은 sudo 필요)</span>');
+    if(pkg) O('trace-cmd'); else W('trace-cmd 없음','sudo apt install trace-cmd','Ch7 L34');
+    S('5. eBPF / bpftrace');
+    if(pkg) O('bpftrace'); else F('bpftrace 없음','sudo apt install bpftrace','Ch7 L35 · Ch8 L40 분석');
+    if(os==='2204'&&!pkg) W('BTF 없음','sudo apt install linux-headers-$(uname -r)','Ch7 L35 (kprobe 인자)'); else O('BTF (/sys/kernel/btf/vmlinux)');
+    if(root&&pkg) O('bpftrace Program 실행'); else L.push('<span class="c">  (bpftrace 실행 Test는 sudo 필요)</span>');
+    S('6. io_uring');
+    if(pkg) O('liburing header'); else F('liburing.h 없음','sudo apt install liburing-dev','Ch6 전체');
+    if(ur) F('kernel.io_uring_disabled = 2','sudo sysctl kernel.io_uring_disabled=0','Ch6 전체'); else O('kernel.io_uring_disabled = 0');
+    S('7. Isolation / Security');
+    if(os==='2204'||os==='2404'||os==='2604') O('cgroup v2');
+    if(pkg){ O('libseccomp header'); O('libcap header'); ['setcap','getcap','capsh','unshare','lsns'].forEach(O); }
+    else { F('seccomp.h 없음','sudo apt install libseccomp-dev','Ch8 L37 · L40'); F('sys/capability.h 없음','sudo apt install libcap-dev','Ch8 L36 · L40'); ['setcap','getcap','capsh'].forEach(t=>W(t+' 없음','sudo apt install libcap2-bin',null)); O('unshare'); O('lsns'); }
+    S('8. 참고 설정 (변경 불필요)'); L.push('  /tmp Filesystem = '+(os==='2604'?'tmpfs   [File I/O 실습은 Home Directory 에서, Ch3]':'ext4'));
+    L.push('\n== 결과: OK '+ok+' / WARN '+warn+' / FAIL '+fail);
+    L.push(fail?'<span class="r">FAIL 항목을 해결한 뒤 다시 실행하세요.</span>':(root?'<span class="g">실습 준비 완료.</span>':'<span class="y">sudo ./env_check.sh 로 한 번 더 실행하면 ftrace, bpftrace 항목까지 점검합니다.</span>'));
+    return {L,imp,ok,warn,fail,root,pkg,hv,os};
+  }
+  function eRun(){
+    const r=check();
+    $('#e-term').innerHTML='<span class="c">$ '+(r.root?'sudo ':'')+'./env_check.sh</span>'+r.L.join('\n');
+    $('#e-ok').textContent=r.ok; $('#e-warn').textContent=r.warn; $('#e-fail').textContent=r.fail;
+    $('#e-fail').style.color=r.fail?'#D6452E':'#178A67'; $('#e-warn').style.color=r.warn?'#C98A12':'#178A67';
+    $('#e-impact').innerHTML='<tr><th>결과</th><th>항목</th><th>영향받는 실습</th></tr>'+(r.imp.length?r.imp.map(x=>'<tr class="'+(x[0]==='FAIL'?'hot':'')+'"><td style="color:'+(x[0]==='FAIL'?'#D6452E':'#C98A12')+'">'+x[0]+'</td><td style="font-family:var(--sans)">'+esc(x[1])+'</td><td style="font-family:var(--sans)">'+esc(x[2])+'</td></tr>').join(''):'<tr><td colspan="3" style="font-family:var(--sans)">없음</td></tr>');
+    let n;
+    if(r.fail&&!r.pkg) n=['도구가 설치되지 않았습니다. <code>sudo ./install_tools.sh</code> 를 먼저 실행하세요 (스위치를 켜 보세요).','warn'];
+    else if(r.fail) n=['FAIL 이 남아 있습니다. 표의 FAIL 항목 아래 줄 <code>-&gt;</code> 뒤의 조치를 하세요. CPU 1개는 VM 을 끄고 Processor 를 2개 이상으로 바꿔야 합니다.','warn'];
+    else if(!r.root) n=['FAIL 0. 이제 <b>sudo 로 실행</b> 스위치를 켜고 한 번 더 실행해 ftrace 와 bpftrace 까지 점검하세요.',''];
+    else if(r.hv==='vbox') n=['<b>준비 완료.</b> 남은 WARN 은 VirtualBox 의 Hardware Counter 하나뿐입니다. VirtualBox 는 CPU 의 PMU 를 VM 에 보여 주지 않으므로 정상이며, 해당 장면(L08, L20, L33)은 Native Linux 결과를 함께 싣습니다. 이제 Snapshot <code>tools-installed</code> 를 만드세요.','ok'];
+    else n=['<b>준비 완료.</b> PMU 가 보이는 환경이라 Hardware Counter 까지 직접 측정할 수 있습니다. Snapshot 을 만들어 두세요.','ok'];
+    $('#e-note').className='note'+(n[1]?' '+n[1]:''); $('#e-note').innerHTML=n[0];
+  }
+  $('#e-run').onclick=eRun; $$('#l2 select, #l2 input').forEach(x=>x.addEventListener('change',eRun));
+  eRun();
+})();
+</script>
+</body>
+</html>

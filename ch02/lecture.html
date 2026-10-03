@@ -1,0 +1,2404 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>고급 Linux System Programming II · Chapter 2 강의 자료 — Virtual Memory와 Memory Management 심화</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+
+
+:root{--paper:#EEF1F5;--panel:#fff;--ink:#1B2A41;--ink-soft:#5B6B80;--line:#C9D1DC;--blue:#2457C5;--blue-soft:#DCE6FA;--red:#D6452E;--red-soft:#FBE3DF;--green:#178A67;--green-soft:#DDF2EA;--amber:#C98A12;--amber-soft:#FBF0D3;--code:#F6F8FB;
+--mono:'IBM Plex Mono',ui-monospace,Consolas,monospace;--sans:'IBM Plex Sans KR','Pretendard','Apple SD Gothic Neo','Malgun Gothic',sans-serif;}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth;scroll-padding-top:20px}
+body{margin:0;font-family:var(--sans);color:var(--ink);background:var(--paper);font-size:16px;line-height:1.65;
+background-image:linear-gradient(rgba(27,42,65,.045) 1px,transparent 1px),linear-gradient(90deg,rgba(27,42,65,.045) 1px,transparent 1px);background-size:24px 24px}
+code,pre,kbd{font-family:var(--mono)}
+.app{display:grid;grid-template-columns:270px 1fr;min-height:100vh}
+nav{background:var(--ink);color:#fff;padding:28px 18px;position:sticky;top:0;height:100vh;overflow:auto}
+nav .sup{font-size:12.5px;color:#8A9BB5;margin:0 0 4px}
+nav .ttl{font-size:20px;font-weight:600;line-height:1.25;margin:0 0 22px}
+nav ol{list-style:none;margin:0;padding:0}
+nav a{display:grid;grid-template-columns:38px 1fr;gap:8px;align-items:baseline;padding:8px 10px;border-radius:6px;color:#D9E1EC;text-decoration:none;font-size:14px;line-height:1.35}
+nav a .n{font-family:var(--mono);font-size:10.5px;color:#8A9BB5}
+nav a:hover{background:rgba(255,255,255,.07)}
+nav a.on{background:var(--blue);color:#fff} nav a.on .n{color:#C9D8F7}
+nav .tools{margin-top:22px;display:grid;gap:6px}
+nav .tools button{font:inherit;font-size:13px;padding:7px 10px;border-radius:6px;border:1px solid #3E5170;background:transparent;color:#D9E1EC;cursor:pointer;text-align:left}
+nav .tools button:hover{background:rgba(255,255,255,.07)}
+nav .legend{margin-top:22px;font-size:12px;color:#8A9BB5;line-height:1.7}
+main{padding:40px 48px 120px;max-width:1040px}
+.doc-head{margin-bottom:28px}
+.doc-head h1{font-size:34px;line-height:1.2;margin:0 0 6px}
+.doc-head p{margin:0;color:var(--ink-soft)}
+section.lesson,section.intro{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:30px 36px 34px;margin-bottom:26px;box-shadow:0 1px 0 rgba(27,42,65,.06)}
+.sec-head{display:grid;grid-template-columns:auto 1fr auto;gap:14px;align-items:center;margin:0 0 6px}
+.sec-head .period{font-family:var(--mono);font-size:12px;font-weight:600;color:#fff;background:var(--ink);padding:4px 10px;border-radius:999px}
+.sec-head h1{font-size:26px;margin:0;line-height:1.25}
+.sec-head .time{font-family:var(--mono);font-size:12px;color:var(--ink-soft)}
+h1{font-size:26px} h2{font-size:21px;margin:30px 0 10px} 
+h3{font-size:17px;margin:32px 0 8px;padding-top:18px;border-top:1px dashed var(--line)}
+h3.ex{color:var(--ink)} h3:first-of-type{border-top:0;padding-top:0}
+h4.fill{font-size:16px;margin:30px 0 6px;padding:10px 14px;background:var(--amber-soft);border-radius:6px;color:#5A3F04}
+p{margin:8px 0}
+.goal-title{margin-top:14px} .goal-title+ul{margin-top:0}
+p.anim{display:inline-block;background:var(--blue-soft);color:var(--blue);padding:6px 12px;border-radius:6px;font-size:14px;margin:4px 0 6px}
+p.predict{background:var(--paper);padding:8px 12px;border-radius:6px;font-family:var(--mono)}
+ul,ol{padding-left:24px} li{margin:3px 0}
+li input[type=checkbox]{width:16px;height:16px;accent-color:var(--green);margin-right:6px;vertical-align:-2px}
+code{background:var(--paper);padding:1px 5px;border-radius:4px;font-size:.9em}
+pre{background:var(--code);border:1px solid var(--line);border-radius:8px;padding:14px 18px;overflow:auto;font-size:13.5px;line-height:1.55;margin:10px 0 14px;position:relative}
+pre code{background:none;padding:0;font-size:inherit}
+pre .copy{position:absolute;top:8px;right:8px;font:inherit;font-size:11px;padding:3px 8px;border-radius:4px;border:1px solid var(--line);background:#fff;color:var(--ink-soft);cursor:pointer;opacity:0;transition:opacity .2s}
+pre:hover .copy{opacity:1}
+pre.lang-bash{background:var(--ink);color:#D9E1EC;border-color:var(--ink)} pre.lang-bash .copy{background:#2A3C58;color:#D9E1EC;border-color:#3E5170}
+pre.lang-bash .hl .c1,pre.lang-bash .hl .c{color:#8A9BB5} pre.lang-bash .hl .go{color:#7FE0B8}
+pre.lang-plain,pre.lang-asm{background:#fff}
+table{border-collapse:collapse;width:100%;margin:12px 0 16px;font-size:14.5px}
+th,td{border:1px solid var(--line);padding:8px 12px;text-align:left;vertical-align:top}
+th{background:var(--paper);font-weight:600}
+td code,th code{white-space:nowrap}
+blockquote{margin:12px 0;padding:10px 16px;border-left:3px solid var(--blue);background:var(--blue-soft);border-radius:0 6px 6px 0}
+details{margin:8px 0 20px;border:1px solid var(--green);border-radius:8px;background:var(--green-soft);overflow:hidden}
+details summary{cursor:pointer;padding:10px 14px;font-weight:600;color:var(--green);list-style:none;user-select:none}
+details summary::-webkit-details-marker{display:none}
+details summary::before{content:"▸ ";font-family:var(--mono)} details[open] summary::before{content:"▾ "}
+details>*:not(summary){margin-left:14px;margin-right:14px} details>*:last-child{margin-bottom:14px}
+details pre{background:#fff}
+strong{font-weight:600}
+hr{display:none}
+.warn-h{color:var(--red)}
+h3 .tag{font-family:var(--mono);font-size:11px;padding:2px 7px;border-radius:999px;margin-left:8px;vertical-align:middle}
+.trap{color:var(--red)}
+pre { line-height: 125%; }
+td.linenos .normal { color: inherit; background-color: transparent; padding-left: 5px; padding-right: 5px; }
+span.linenos { color: inherit; background-color: transparent; padding-left: 5px; padding-right: 5px; }
+td.linenos .special { color: #000000; background-color: #ffffc0; padding-left: 5px; padding-right: 5px; }
+span.linenos.special { color: #000000; background-color: #ffffc0; padding-left: 5px; padding-right: 5px; }
+
+
+input.blank{font:inherit;font-family:var(--mono);font-size:.95em;border:0;border-bottom:2px solid var(--blue);background:var(--blue-soft);padding:0 6px;min-width:70px;width:var(--w,110px);color:var(--ink);border-radius:3px 3px 0 0;outline:none;vertical-align:baseline}
+input.blank:focus{background:#fff;box-shadow:0 0 0 2px rgba(36,87,197,.25)}
+input.blank.ok{border-color:var(--green);background:var(--green-soft)} input.blank.ng{border-color:var(--red);background:var(--red-soft)}
+select.blank{font:inherit;font-size:.95em;border:1px solid var(--blue);background:#fff;border-radius:4px;padding:1px 4px;color:var(--ink)}
+select.blank.ok{border-color:var(--green);background:var(--green-soft)} select.blank.ng{border-color:var(--red);background:var(--red-soft)}
+pre input.blank{width:9ch;min-width:5ch;line-height:1.2}
+li input.blank.pb{width:120px}
+.qbar{display:flex;gap:8px;align-items:center;margin:6px 0 10px}
+.qbar .btn{font:inherit;font-size:13px;padding:6px 12px;border-radius:6px;border:1px solid var(--ink);background:var(--ink);color:#fff;cursor:pointer}
+.qbar .btn.clear{background:#fff;color:var(--ink);border-color:var(--line)}
+.qres{font-size:13.5px;font-weight:600} .qres.ok{color:var(--green)} .qres.ng{color:var(--red)}
+.score-box{margin-top:10px;font-size:12.5px;color:#D9E1EC;background:#2A3C58;border-radius:6px;padding:8px 10px}
+.score-box b{font-family:var(--mono);color:#7FE0B8}
+@media print{input.blank{background:#fff;border-bottom:1px solid var(--ink);-webkit-print-color-adjust:exact} .qbar{display:none}}
+
+pre { line-height: 125%; }
+td.linenos .normal { color: inherit; background-color: transparent; padding-left: 5px; padding-right: 5px; }
+span.linenos { color: inherit; background-color: transparent; padding-left: 5px; padding-right: 5px; }
+td.linenos .special { color: #000000; background-color: #ffffc0; padding-left: 5px; padding-right: 5px; }
+span.linenos.special { color: #000000; background-color: #ffffc0; padding-left: 5px; padding-right: 5px; }
+.hl .hll { background-color: #ffffcc }
+.hl { background: #f8f8f8; }
+.hl .c { color: #3D7B7B; font-style: italic } /* Comment */
+.hl .err { border: 1px solid #F00 } /* Error */
+.hl .k { color: #008000; font-weight: bold } /* Keyword */
+.hl .o { color: #666 } /* Operator */
+.hl .ch { color: #3D7B7B; font-style: italic } /* Comment.Hashbang */
+.hl .cm { color: #3D7B7B; font-style: italic } /* Comment.Multiline */
+.hl .cp { color: #9C6500 } /* Comment.Preproc */
+.hl .cpf { color: #3D7B7B; font-style: italic } /* Comment.PreprocFile */
+.hl .c1 { color: #3D7B7B; font-style: italic } /* Comment.Single */
+.hl .cs { color: #3D7B7B; font-style: italic } /* Comment.Special */
+.hl .gd { color: #A00000 } /* Generic.Deleted */
+.hl .ge { font-style: italic } /* Generic.Emph */
+.hl .ges { font-weight: bold; font-style: italic } /* Generic.EmphStrong */
+.hl .gr { color: #E40000 } /* Generic.Error */
+.hl .gh { color: #000080; font-weight: bold } /* Generic.Heading */
+.hl .gi { color: #008400 } /* Generic.Inserted */
+.hl .go { color: #717171 } /* Generic.Output */
+.hl .gp { color: #000080; font-weight: bold } /* Generic.Prompt */
+.hl .gs { font-weight: bold } /* Generic.Strong */
+.hl .gu { color: #800080; font-weight: bold } /* Generic.Subheading */
+.hl .gt { color: #04D } /* Generic.Traceback */
+.hl .kc { color: #008000; font-weight: bold } /* Keyword.Constant */
+.hl .kd { color: #008000; font-weight: bold } /* Keyword.Declaration */
+.hl .kn { color: #008000; font-weight: bold } /* Keyword.Namespace */
+.hl .kp { color: #008000 } /* Keyword.Pseudo */
+.hl .kr { color: #008000; font-weight: bold } /* Keyword.Reserved */
+.hl .kt { color: #B00040 } /* Keyword.Type */
+.hl .m { color: #666 } /* Literal.Number */
+.hl .s { color: #BA2121 } /* Literal.String */
+.hl .na { color: #687822 } /* Name.Attribute */
+.hl .nb { color: #008000 } /* Name.Builtin */
+.hl .nc { color: #00F; font-weight: bold } /* Name.Class */
+.hl .no { color: #800 } /* Name.Constant */
+.hl .nd { color: #A2F } /* Name.Decorator */
+.hl .ni { color: #717171; font-weight: bold } /* Name.Entity */
+.hl .ne { color: #CB3F38; font-weight: bold } /* Name.Exception */
+.hl .nf { color: #00F } /* Name.Function */
+.hl .nl { color: #767600 } /* Name.Label */
+.hl .nn { color: #00F; font-weight: bold } /* Name.Namespace */
+.hl .nt { color: #008000; font-weight: bold } /* Name.Tag */
+.hl .nv { color: #19177C } /* Name.Variable */
+.hl .ow { color: #A2F; font-weight: bold } /* Operator.Word */
+.hl .w { color: #BBB } /* Text.Whitespace */
+.hl .mb { color: #666 } /* Literal.Number.Bin */
+.hl .mf { color: #666 } /* Literal.Number.Float */
+.hl .mh { color: #666 } /* Literal.Number.Hex */
+.hl .mi { color: #666 } /* Literal.Number.Integer */
+.hl .mo { color: #666 } /* Literal.Number.Oct */
+.hl .sa { color: #BA2121 } /* Literal.String.Affix */
+.hl .sb { color: #BA2121 } /* Literal.String.Backtick */
+.hl .sc { color: #BA2121 } /* Literal.String.Char */
+.hl .dl { color: #BA2121 } /* Literal.String.Delimiter */
+.hl .sd { color: #BA2121; font-style: italic } /* Literal.String.Doc */
+.hl .s2 { color: #BA2121 } /* Literal.String.Double */
+.hl .se { color: #AA5D1F; font-weight: bold } /* Literal.String.Escape */
+.hl .sh { color: #BA2121 } /* Literal.String.Heredoc */
+.hl .si { color: #A45A77; font-weight: bold } /* Literal.String.Interpol */
+.hl .sx { color: #008000 } /* Literal.String.Other */
+.hl .sr { color: #A45A77 } /* Literal.String.Regex */
+.hl .s1 { color: #BA2121 } /* Literal.String.Single */
+.hl .ss { color: #19177C } /* Literal.String.Symbol */
+.hl .bp { color: #008000 } /* Name.Builtin.Pseudo */
+.hl .fm { color: #00F } /* Name.Function.Magic */
+.hl .vc { color: #19177C } /* Name.Variable.Class */
+.hl .vg { color: #19177C } /* Name.Variable.Global */
+.hl .vi { color: #19177C } /* Name.Variable.Instance */
+.hl .vm { color: #19177C } /* Name.Variable.Magic */
+.hl .il { color: #666 } /* Literal.Number.Integer.Long */
+.hl .k,.hl .kt,.hl .kr,.hl .cp{color:#7A3E9D;font-weight:500} .hl .kt{color:#2457C5} .hl .s,.hl .sc,.hl .se{color:#178A67} .hl .c1,.hl .cm,.hl .c{color:#8A9BB5;font-style:normal} .hl .mi,.hl .mf,.hl .mh{color:#B8641F} .hl .nf{color:#1B2A41;font-weight:600}
+.hl .err{border:0;color:inherit;background:none}
+
+figure.wiring{margin:14px 0 18px;overflow-x:auto;border:1px solid var(--line);border-radius:8px;background:#fff;padding:8px}
+figure.wiring svg{display:block;max-width:none;width:100%;min-width:640px;height:auto}
+
+h4:not(.fill){font-size:16px;margin:26px 0 8px;color:var(--blue)}
+h3.guide{color:var(--ink);background:var(--paper);padding:10px 14px;border-radius:8px;border-top:0}
+/* h4.step */
+@media print{nav{display:none} .app{display:block} main{padding:0;max-width:none}
+ section.lesson,section.intro{box-shadow:none;break-inside:auto}
+ body:not(.print-ans) details{display:none} pre .copy{display:none}}
+
+
+@media (max-width:860px){.app{display:block} nav{position:static;height:auto} main{padding:20px 14px 80px} section.lesson,section.intro{padding:20px 16px}}
+blockquote p{margin:4px 0}
+pre.lang-bash .nv,pre.lang-bash .nb,pre.lang-bash .o{color:#9CC3FF}
+@media (max-width:860px){table{display:block;overflow-x:auto} td code,th code{white-space:normal}}
+</style>
+</head>
+<body>
+<div class="app">
+<nav>
+<p class="sup">고급 Linux System Programming II · 2/8</p>
+<p class="ttl">Virtual Memory와 Memory Management 심화</p>
+<ol id="nav"><li><a href="#intro"><span class="n">시작</span>사용법 · Lecture 표</a></li><li><a href="#sec1"><span class="n">L06</span>Process Virtual Address Space</a></li><li><a href="#sec2"><span class="n">L07</span>Virtual Address와 Page Table</a></li><li><a href="#sec3"><span class="n">L08</span>TLB와 Address Translation</a></li><li><a href="#sec4"><span class="n">L09</span>Page Fault 내부 동작</a></li><li><a href="#sec5"><span class="n">L10</span>mmap과 Memory Mapped File</a></li></ol>
+<div class="tools">
+<button id="openAll">🔒 정답 모두 펼치기</button>
+<button id="closeAll">정답 모두 접기</button>
+<button id="printBtn">인쇄 (정답 제외)</button>
+<button id="printAnsBtn">인쇄 (정답 포함 · 강사용)</button>
+</div>
+<div class="score-box">내 답 진행: <b id="scoreDone">0</b> / <b id="scoreTot">0</b> 칸 · 맞힘 <b id="scoreOk">0</b></div>
+<p class="legend">▶ 예제 — 빌드하고 결과 확인<br>✏️ 빈칸·괄호 — 채운 뒤 확인<br>🔒 정답 보기 — 정답과 설명<br>🎬 — animation.html 애니메이션</p>
+</nav>
+<main>
+<header class="doc-head"><h1>Chapter 2 강의 자료 — Virtual Memory와 Memory Management 심화</h1><p><strong>고급 Linux System Programming II · Chapter 2/8 · 5 Lecture · 영상 86분 · Ubuntu Server 26.04 VM</strong></p></header>
+<section id="intro" class="intro">
+<table><thead><tr><th>Lecture</th><th>주제</th><th>영상</th><th>애니메이션 (animation.html)</th></tr></thead><tbody>
+<tr><td>L06</td><td>Process Virtual Address Space</td><td>16분</td><td>C2-1 Process Address Space Explorer</td></tr>
+<tr><td>L07</td><td>Virtual Address와 Page Table</td><td>18분</td><td>C2-2 Virtual Address Translator</td></tr>
+<tr><td>L08</td><td>TLB와 Address Translation</td><td>16분</td><td>C2-3 TLB Hit / Miss Simulator</td></tr>
+<tr><td>L09</td><td>Page Fault 내부 동작</td><td>18분</td><td>C2-4 Page Fault Walkthrough</td></tr>
+<tr><td>L10</td><td>mmap과 Memory Mapped File</td><td>18분</td><td>C2-5 mmap: File ↔ Page Cache ↔ Address Space</td></tr>
+</tbody></table>
+<h3>이 자료 사용법</h3>
+<ul>
+<li><strong>▶ 예제</strong>는 PuTTY 에서 <code>~/lsp2/ch02/src/LNN</code> 으로 이동해 <code>make</code> 로 빌드하고, 출력을 문서의 출력과 비교합니다.</li>
+<li><strong>✏️ 빈칸 채우기</strong>는 실제 예제 Source 의 핵심 줄을 비운 것입니다. 채우고 <strong>확인</strong>을 누른 뒤 원본 File 과 비교해 보세요.</li>
+<li><strong>✏️ 괄호 넣기</strong>는 문장의 칸에 들어갈 말을 먼저 생각한 뒤 입력하고 <strong>확인</strong>을 누릅니다. 칸에서 Enter 를 눌러도 확인됩니다.</li>
+<li><strong>🔒 정답 보기</strong>는 정답과 설명입니다. 입력한 답은 이 브라우저에 저장됩니다.</li>
+<li><strong>🎬</strong> 표시는 같은 폴더의 <code>animation.html</code> 입니다. Lecture 를 마치면 <code>worksheet.html</code> 의 10문항으로 확인합니다.</li>
+</ul>
+<h3>실습 환경</h3>
+<table><thead><tr><th>항목</th><th>값</th></tr></thead><tbody>
+<tr><td>Guest</td><td>Ubuntu Server 26.04 LTS · Linux Kernel 7.0 · GCC 15 · x86-64 (Chapter 0 에서 준비)</td></tr>
+<tr><td>저장소</td><td><a href="https://github.com/imguru-mooc/adv-sysprog">https://github.com/imguru-mooc/adv-sysprog</a> — <code>cd ~/lsp2 &amp;&amp; git pull</code></td></tr>
+<tr><td>예제 위치</td><td><code>~/lsp2/ch02/src/</code> (L06 · L07 · L08 · L09 · L10, <code>make</code> 로 전체 빌드)</td></tr>
+<tr><td>온라인 자료</td><td><a href="https://imguru-mooc.github.io/adv-sysprog/ch02/lecture.html">https://imguru-mooc.github.io/adv-sysprog/ch02/lecture.html</a></td></tr>
+</tbody></table>
+</section>
+<section id="sec1" class="lesson"><header class="sec-head"><span class="period">Lecture 06</span><h1>Process Virtual Address Space</h1><span class="time">영상 16분</span></header>
+<p><code>malloc(1GB)</code>는 성공하는데 Memory 사용량은 늘지 않습니다. Process가 보는 "주소"는 Physical Memory의 주소가 아니기 때문입니다.</p>
+<p class="goal-title"><strong>학습 목표</strong></p><ul>
+<li><code>/proc/PID/maps</code>의 각 열을 읽고, 변수의 주소가 어느 영역에 속하는지 찾을 수 있다.</li>
+<li>Kernel이 주소 공간을 VMA(<code>vm_area_struct</code>) 단위로 관리함을 설명할 수 있다.</li>
+<li>Heap(<code>brk</code>)과 <code>mmap</code> 영역, Stack이 각각 어떻게 커지는지 관찰할 수 있다.</li>
+<li>VSZ(Virtual Size)와 RSS(Resident Set Size)의 차이를 설명할 수 있다.</li>
+<li>ASLR이 무엇이고 어떻게 끄고 켜는지 안다.</li>
+</ul>
+<p class="anim">🎬 <a href="animation.html#l1" style="color:inherit"><strong>C2-1 Process Address Space Explorer</strong></a> — animation.html 에서 단계별로 조작</p>
+<h3>준비</h3><div class="hl"><pre><code class="language-bash"><span class="nb">cd</span><span class="w"> </span>~/lsp2/ch02/src/L06
+make
+</code></pre></div>
+<h3>6-1. 복습과 질문</h3>
+<p>기존 과정에서 Process의 Memory를 "Text, Data, BSS, Heap, Stack"으로 배웠고, Chapter 1에서는 이것이 ELF의 <code>LOAD</code> Segment를 <code>mmap</code>한 결과라는 것을 봤습니다.</p>
+<p>Chapter 1은 두 가지를 미뤄 두었습니다.</p>
+<ol>
+<li>"<code>mmap</code>은 대응 관계만 기록하고 끝난다." 그 <strong>기록</strong>은 어디에 어떤 형태로 있는가?</li>
+<li>"실제 내용은 처음 접근할 때 올라온다." 그러면 <strong>할당한 것</strong>과 <strong>실제로 쓰는 것</strong>은 다른가?</li>
+</ol>
+<p>이번 Lecture는 1번과 2번의 현상을 관찰합니다. 원리는 L07~L09에서 이어집니다.</p>
+<h3>6-2. 주소를 찍고 maps와 대조하기</h3>
+<p><a href="src/L06/addr_map.c">addr_map.c</a>는 종류별 변수의 주소를 출력한 뒤 자신의 <code>/proc/self/maps</code>를 출력합니다.</p>
+<div class="hl"><pre><code class="language-bash">./addr_map
+</code></pre></div>
+<div class="hl"><pre><code class="language-text">text   main    0x5556711f9369
+rodata g_ro    0x5556711fa0d4
+data   g_data  0x5556711fc010
+bss    g_bss   0x5556711fc024
+heap   malloc  0x55569dc4b2a0
+mmap   region  0x7f35cedba000
+libc   printf  0x7f35cea60100
+stack  local   0x7ffdcb79a6d4
+---- /proc/self/maps ----
+5556711f8000-5556711f9000 r--p 00000000 08:02 573648    /home/user/.../lab/addr_map
+5556711f9000-5556711fa000 r-xp 00001000 08:02 573648    /home/user/.../lab/addr_map
+5556711fa000-5556711fb000 r--p 00002000 08:02 573648    /home/user/.../lab/addr_map
+5556711fb000-5556711fc000 r--p 00002000 08:02 573648    /home/user/.../lab/addr_map
+5556711fc000-5556711fd000 rw-p 00003000 08:02 573648    /home/user/.../lab/addr_map
+55569dc4b000-55569dc6c000 rw-p 00000000 00:00 0         [heap]
+7f35cea00000-7f35cea28000 r--p 00000000 08:02 1312      /usr/lib/x86_64-linux-gnu/libc.so.6
+7f35cea28000-7f35cebb0000 r-xp 00028000 08:02 1312      /usr/lib/x86_64-linux-gnu/libc.so.6
+...
+7f35cedba000-7f35cedbb000 rw-p 00000000 00:00 0
+...
+7ffdcb77b000-7ffdcb79c000 rw-p 00000000 00:00 0         [stack]
+7ffdcb7e1000-7ffdcb7e5000 r--p 00000000 00:00 0         [vvar]
+7ffdcb7e5000-7ffdcb7e7000 r-xp 00000000 00:00 0         [vdso]
+</code></pre></div>
+<p>위쪽 주소 8개를 아래 maps에서 하나씩 찾아보세요. 예를 들어 <code>main</code>의 <code>0x5556711f9369</code>는 <code>5556711f9000-5556711fa000 r-xp</code> 줄 안에 있습니다.</p>
+<table>
+<thead>
+<tr>
+<th>주소</th>
+<th>속한 줄</th>
+<th>권한</th>
+<th>확인할 점</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>main</code></td>
+<td>addr_map, Offset 0x1000</td>
+<td><code>r-xp</code></td>
+<td>L03의 <code>LOAD R E</code></td>
+</tr>
+<tr>
+<td><code>g_ro</code></td>
+<td>addr_map, Offset 0x2000</td>
+<td><code>r--p</code></td>
+<td><code>.rodata</code></td>
+</tr>
+<tr>
+<td><code>g_data</code>, <code>g_bss</code></td>
+<td>addr_map, Offset 0x3000</td>
+<td><code>rw-p</code></td>
+<td><code>.data</code>와 <code>.bss</code>는 같은 VMA</td>
+</tr>
+<tr>
+<td><code>malloc</code> 결과</td>
+<td><code>[heap]</code></td>
+<td><code>rw-p</code></td>
+<td></td>
+</tr>
+<tr>
+<td><code>mmap</code> 결과</td>
+<td>이름 없는 줄</td>
+<td><code>rw-p</code></td>
+<td>Anonymous Mapping</td>
+</tr>
+<tr>
+<td><code>printf</code></td>
+<td>libc.so.6</td>
+<td><code>r-xp</code></td>
+<td>실행 File과 멀리 떨어진 <code>0x7f...</code></td>
+</tr>
+<tr>
+<td><code>local</code></td>
+<td><code>[stack]</code></td>
+<td><code>rw-p</code></td>
+<td>가장 높은 주소</td>
+</tr>
+</tbody>
+</table>
+<p>전체 배치를 그림으로 정리하면 다음과 같습니다(x86-64, 위가 높은 주소).</p>
+<div class="hl"><pre><code class="language-text">0xffffffffffffffff ┌────────────────────┐
+                   │ Kernel Space       │  모든 Process 에 공통. Ring 3 에서 접근 불가
+0xffff800000000000 ├────────────────────┤
+                   │ (사용할 수 없는 구간)  │  48bit 주소의 빈 구멍
+0x00007fffffffffff ├────────────────────┤
+                   │ [stack]        ↓   │  아래로 자란다
+                   │ [vvar] [vdso]      │
+                   │ mmap 영역       ↓   │  Shared Library, 큰 malloc, mmap()
+                   │                    │
+                   │ [heap]         ↑   │  위로 자란다 (brk)
+                   │ .data .bss         │
+                   │ .rodata            │
+                   │ .text              │  PIE: 0x55… / 0x56… 근처의 Random 위치
+0x0000000000000000 └────────────────────┘  0 번지 근처는 비워 둔다 (NULL 접근 검출)
+</code></pre></div>
+<p>User Space만 128TB(47bit)입니다. 실제 Memory가 4GB인 VM에서도 그렇습니다. <strong>이 주소들은 Physical Memory의 위치가 아니라 Process마다 따로 주어지는 가상의 번호</strong>이기 때문입니다.</p>
+<h3>6-3. maps 한 줄 = VMA 하나</h3>
+<div class="hl"><pre><code class="language-text">5556711f9000-5556711fa000 r-xp 00001000 08:02 573648    /home/user/.../lab/addr_map
+└──── 주소 범위 ────────┘ 권한  Offset   장치  inode     File 경로
+</code></pre></div>
+<table>
+<thead>
+<tr>
+<th>열</th>
+<th>의미</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>주소 범위</td>
+<td>시작-끝(끝은 포함하지 않음). 항상 4KB의 배수</td>
+</tr>
+<tr>
+<td>권한</td>
+<td><code>r</code> <code>w</code> <code>x</code> + <code>p</code>(Private: 쓰면 나만의 복사본) 또는 <code>s</code>(Shared)</td>
+</tr>
+<tr>
+<td>Offset</td>
+<td>File의 어디부터 대응되는가</td>
+</tr>
+<tr>
+<td>장치, inode</td>
+<td>어느 File인가. <code>00:00 0</code>이면 File 없음(Anonymous)</td>
+</tr>
+<tr>
+<td>경로</td>
+<td>File 이름, 또는 <code>[heap]</code> <code>[stack]</code> <code>[vdso]</code> 같은 특수 이름</td>
+</tr>
+</tbody>
+</table>
+<p>L03의 <code>readelf -l</code>과 비교해 보세요. <code>LOAD</code>의 Offset <code>0x1000</code>, 권한 <code>R E</code>가 그대로 <code>00001000</code>, <code>r-xp</code>로 나타납니다.</p>
+<p>Kernel 안에서 이 한 줄은 <strong><code>struct vm_area_struct</code>(VMA)</strong> 객체 하나입니다.</p>
+<div class="hl"><pre><code class="language-text">task_struct ──→ mm_struct ──┬─ VMA { 0x5556711f9000 ~ 0x5556711fa000, r-x, file=addr_map, off=0x1000 }
+  (Process)     (주소 공간)   ├─ VMA { 0x55569dc4b000 ~ 0x55569dc6c000, rw-, file=없음 }     [heap]
+                            ├─ VMA { 0x7f35cea28000 ~ 0x7f35cebb0000, r-x, file=libc.so.6 }
+                            └─ VMA { 0x7ffdcb77b000 ~ 0x7ffdcb79c000, rw-, file=없음 }     [stack]
+</code></pre></div>
+<p>이것이 Chapter 1에서 말한 "대응 관계의 기록"입니다. <code>mmap()</code>이 하는 일은 <strong>VMA를 하나 만들어 목록에 넣는 것</strong>이 전부입니다. 아직 Physical Memory는 한 Byte도 쓰지 않았습니다.</p>
+<blockquote>
+<p><strong>📌 NOTE</strong><br />
+VMA는 "이 주소 범위는 <strong>유효하다</strong>, 여기에 접근하면 <strong>이런 내용</strong>이 보여야 한다"는 <strong>약속</strong>입니다. 약속을 실제로 이행하는 시점이 L09의 Page Fault입니다.</p>
+</blockquote>
+<p>사람이 읽기 편한 형태로 보려면 <code>pmap</code>을 씁니다.</p>
+<div class="hl"><pre><code class="language-bash">sleep<span class="w"> </span><span class="m">100</span><span class="w"> </span><span class="p">&amp;</span>
+pmap<span class="w"> </span>-x<span class="w"> </span><span class="nv">$!</span>
+<span class="nb">kill</span><span class="w"> </span>%1
+</code></pre></div>
+<div class="hl"><pre><code class="language-text">Address           Kbytes     RSS   Dirty Mode  Mapping
+000055d1a3c5e000       8       8       0 r---- sleep
+000055d1a3c60000      16      16       0 r-x-- sleep
+...
+00007f4e2c200000    1568    1024       0 r-x-- libc.so.6
+...
+---------------- ------- ------- -------
+total kB            5812    1712     100
+</code></pre></div>
+<p><code>Kbytes</code>(주소 범위의 크기)와 <code>RSS</code>(실제 Physical Memory)가 다릅니다. libc 코드는 1568KB를 Mapping했지만 1024KB만 올라와 있습니다. 6-6에서 다시 봅니다.</p>
+<h3>6-4. Heap은 brk로, 큰 할당은 mmap으로</h3>
+<p><a href="src/L06/heap_grow.c">heap_grow.c</a>는 <code>malloc</code> 전후의 <code>[heap]</code> 줄을 출력합니다.</p>
+<div class="hl"><pre><code class="language-bash">./heap_grow
+</code></pre></div>
+<div class="hl"><pre><code class="language-text">== start  (program break = 0x55a622a5a000)
+   ([heap] 없음)
+== after malloc(1000)  (program break = 0x55a622a7b000)
+   55a622a5a000-55a622a7b000 rw-p 00000000 00:00 0                          [heap]
+   small = 0x55a622a5a2a0
+== after malloc(4MB)  (program break = 0x55a622a7b000)
+   55a622a5a000-55a622a7b000 rw-p 00000000 00:00 0                          [heap]
+   big   = 0x7f12535ff010
+</code></pre></div>
+<p>세 가지를 확인합니다.</p>
+<ol>
+<li><strong>시작할 때는 <code>[heap]</code>이 없습니다.</strong> Heap은 처음부터 있는 영역이 아닙니다.</li>
+<li><strong>1000 Byte를 요청했는데 132KB(<code>0x21000</code>)가 생겼습니다.</strong> glibc는 <code>brk</code> System Call로 program break를 넉넉히 올려 두고, 이후의 작은 <code>malloc</code>은 System Call 없이 그 안에서 나눠 줍니다(L02의 "System Call 비용 줄이기").</li>
+<li><strong>4MB 요청에는 <code>[heap]</code>이 변하지 않았고</strong> 주소가 <code>0x7f...</code>입니다. 큰 요청(기본 128KB 이상)은 <code>mmap</code>으로 별도 영역을 만듭니다.</li>
+</ol>
+<p>strace로 확인합니다.</p>
+<div class="hl"><pre><code class="language-bash">strace<span class="w"> </span>-e<span class="w"> </span><span class="nv">trace</span><span class="o">=</span>brk,mmap,munmap<span class="w"> </span>./heap_grow<span class="w"> </span><span class="m">2</span>&gt;<span class="p">&amp;</span><span class="m">1</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>tail<span class="w"> </span>-n<span class="w"> </span><span class="m">8</span>
+</code></pre></div>
+<div class="hl"><pre><code class="language-text">brk(NULL)                               = 0x55a622a5a000
+brk(0x55a622a7b000)                     = 0x55a622a7b000
+...
+mmap(NULL, 4198400, PROT_READ|PROT_WRITE, MAP_PRIVATE|MAP_ANONYMOUS, -1, 0) = 0x7f12535ff000
+...
+munmap(0x7f12535ff000, 4198400)         = 0
+</code></pre></div>
+<table>
+<thead>
+<tr>
+<th></th>
+<th>작은 malloc</th>
+<th>큰 malloc (≥ 128KB, <code>M_MMAP_THRESHOLD</code>)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>System Call</td>
+<td><code>brk</code> (가끔)</td>
+<td><code>mmap</code> (매번)</td>
+</tr>
+<tr>
+<td>위치</td>
+<td><code>[heap]</code></td>
+<td>mmap 영역</td>
+</tr>
+<tr>
+<td><code>free</code> 하면</td>
+<td>glibc 내부 목록으로 돌아감. Kernel에 반환되지 않을 수 있음</td>
+<td>즉시 <code>munmap</code>으로 반환</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>💡 TIP</strong><br />
+"free 했는데 Process의 Memory 사용량이 줄지 않는다"는 흔한 질문의 답이 이 표에 있습니다. <code>brk</code>로 올린 Heap은 맨 끝이 비어야만 내릴 수 있습니다.</p>
+<p><strong>📌 NOTE</strong><br />
+이 프로그램은 <code>printf</code> 대신 <code>write</code>로 출력합니다. <code>printf</code>와 <code>fopen</code>은 내부에서 <code>malloc</code>을 호출해 Heap을 먼저 만들어 버리기 때문입니다. 관찰 도구가 관찰 대상을 바꾸는 사례입니다.</p>
+</blockquote>
+<h3>6-5. Stack은 저절로 커진다</h3>
+<p><a href="src/L06/stack_grow.c">stack_grow.c</a>는 호출마다 16KB의 지역 변수를 쓰는 함수를 256번 재귀 호출합니다.</p>
+<div class="hl"><pre><code class="language-bash">./stack_grow
+</code></pre></div>
+<div class="hl"><pre><code class="language-text">start          [stack] 7fff880ad000-7fff880ce000     132 KB
+depth 256      [stack] 7fff87cc6000-7fff880ce000    4128 KB
+after return   [stack] 7fff87cc6000-7fff880ce000    4128 KB
+</code></pre></div>
+<ul>
+<li>끝 주소(<code>...0ce000</code>)는 그대로이고 <strong>시작 주소가 아래로 내려갔습니다.</strong> Stack은 낮은 주소 방향으로 자랍니다.</li>
+<li><code>brk</code>나 <code>mmap</code> 같은 System Call을 부른 적이 없습니다. <code>[stack]</code> VMA 바로 아래 주소를 건드리면 Kernel이 Page Fault 처리 중에 <strong>VMA를 자동으로 확장</strong>해 줍니다(L09).</li>
+<li>함수에서 돌아온 뒤에도 줄어들지 않습니다.</li>
+</ul>
+<p>한계는 <code>ulimit -s</code>입니다.</p>
+<div class="hl"><pre><code class="language-bash"><span class="nb">ulimit</span><span class="w"> </span>-s
+</code></pre></div>
+<div class="hl"><pre><code class="language-text">8192
+</code></pre></div>
+<p>8MB를 넘어 확장하려고 하면 Kernel이 거부하고 <code>SIGSEGV</code>를 보냅니다. 무한 재귀가 "Segmentation fault"로 끝나는 이유입니다. Thread의 Stack은 다릅니다. <code>pthread_create</code>가 <code>mmap</code>으로 고정 크기(기본 8MB)를 미리 잡아 두며 자동 확장되지 않습니다.</p>
+<h3>6-6. 1GB를 할당해도 Memory가 줄지 않는 이유</h3>
+<p><a href="src/L06/vsz_rss.c">vsz_rss.c</a>는 1GB를 <code>malloc</code>하고, 그중 256MB만 건드립니다.</p>
+<div class="hl"><pre><code class="language-bash">./vsz_rss
+</code></pre></div>
+<div class="hl"><pre><code class="language-text">== start
+   VmSize:	    2688 kB
+   VmRSS:	    1544 kB
+== after malloc(1GB)          : 주소 범위만 예약
+   VmSize:	 1051268 kB
+   VmRSS:	    1548 kB
+== after touching 256MB       : 건드린 만큼만 Physical Memory
+   VmSize:	 1051268 kB
+   VmRSS:	  263692 kB
+== after free
+   VmSize:	    2688 kB
+   VmRSS:	    1544 kB
+</code></pre></div>
+<table>
+<thead>
+<tr>
+<th></th>
+<th>의미</th>
+<th><code>malloc(1GB)</code> 직후</th>
+<th>256MB 건드린 뒤</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>VmSize (VSZ)</strong></td>
+<td>VMA 크기의 합계. "약속한 주소 범위"</td>
+<td>+1GB</td>
+<td>그대로</td>
+</tr>
+<tr>
+<td><strong>VmRSS (RSS)</strong></td>
+<td>지금 Physical Memory에 올라와 있는 양</td>
+<td>변화 없음</td>
+<td>+256MB</td>
+</tr>
+</tbody>
+</table>
+<p><code>malloc(1GB)</code>는 1GB짜리 VMA 하나를 만들었을 뿐입니다. Physical Memory는 <strong>Page를 처음 건드리는 순간</strong> 4KB씩 배정됩니다. 이것을 <strong>Demand Paging</strong>이라고 합니다.</p>
+<p><code>ps</code>, <code>top</code>에서도 같은 값을 봅니다.</p>
+<div class="hl"><pre><code class="language-bash">ps<span class="w"> </span>-o<span class="w"> </span>pid,vsz,rss,comm<span class="w"> </span>-p<span class="w"> </span><span class="nv">$$</span>
+</code></pre></div>
+<div class="hl"><pre><code class="language-text">    PID    VSZ   RSS COMMAND
+   1873  11284  5632 bash
+</code></pre></div>
+<blockquote>
+<p><strong>❗ IMPORTANT</strong><br />
+"이 Process가 Memory를 얼마나 쓰는가"를 볼 때는 <strong>RSS</strong>를 봅니다. VSZ가 수십 GB인 프로그램(Java, Go Runtime, Chrome)은 주소 범위를 넉넉히 예약했을 뿐이고 이상이 아닙니다. 다만 RSS도 완벽하지는 않습니다. libc처럼 여러 Process가 공유하는 Page가 중복으로 세어집니다. 이를 보정한 값이 <code>smaps</code>의 PSS이며 Chapter 7에서 다룹니다.</p>
+<p><strong>📌 NOTE</strong><br />
+Physical Memory가 4GB뿐인 VM에서 <code>malloc(100GB)</code>도 성공할 수 있습니다. Linux는 기본적으로 "약속은 넉넉히, 이행은 나중에"(Overcommit) 방식입니다. 실제로 다 건드려서 Memory가 바닥나면 OOM Killer가 Process를 종료시킵니다. 이 주제는 Chapter 8(Cgroup)에서 이어집니다.</p>
+</blockquote>
+<h3>6-7. ASLR</h3>
+<p><code>addr_map</code>을 두 번 실행해 주소를 비교합니다.</p>
+<div class="hl"><pre><code class="language-bash">./addr_map<span class="w"> </span><span class="p">|</span><span class="w"> </span>head<span class="w"> </span>-n<span class="w"> </span><span class="m">8</span><span class="w"> </span>&gt;<span class="w"> </span>a.txt<span class="p">;</span><span class="w"> </span>./addr_map<span class="w"> </span><span class="p">|</span><span class="w"> </span>head<span class="w"> </span>-n<span class="w"> </span><span class="m">8</span><span class="w"> </span>&gt;<span class="w"> </span>b.txt<span class="p">;</span><span class="w"> </span>paste<span class="w"> </span>a.txt<span class="w"> </span>b.txt<span class="w"> </span><span class="p">|</span><span class="w"> </span>awk<span class="w"> </span><span class="s1">&#39;{print $2, $3, $6}&#39;</span>
+</code></pre></div>
+<div class="hl"><pre><code class="language-text">main 0x5556711f9369 0x55d8c2a41369
+g_ro 0x5556711fa0d4 0x55d8c2a420d4
+...
+local 0x7ffdcb79a6d4 0x7ffe0b1c4a14
+</code></pre></div>
+<p>실행할 때마다 모든 영역의 위치가 바뀝니다. <strong>ASLR(Address Space Layout Randomization)</strong> 입니다. 공격자가 "libc의 <code>system</code> 함수는 이 주소에 있다"고 미리 알 수 없게 합니다. 끝 3자리(<code>369</code>)가 같은 이유는 Random화가 Page(4KB = <code>0x1000</code>) 단위이기 때문입니다.</p>
+<div class="hl"><pre><code class="language-bash">cat<span class="w"> </span>/proc/sys/kernel/randomize_va_space
+</code></pre></div>
+<div class="hl"><pre><code class="language-text">2
+</code></pre></div>
+<table>
+<thead>
+<tr>
+<th>값</th>
+<th>의미</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>0</td>
+<td>끔</td>
+</tr>
+<tr>
+<td>1</td>
+<td>Stack, mmap, vDSO</td>
+</tr>
+<tr>
+<td>2</td>
+<td>1 + Heap (기본)</td>
+</tr>
+</tbody>
+</table>
+<p>System 설정을 바꾸지 않고 <strong>한 번의 실행만</strong> ASLR 없이 하려면 <code>setarch</code>를 씁니다.</p>
+<div class="hl"><pre><code class="language-bash">setarch<span class="w"> </span>-R<span class="w"> </span>./addr_map<span class="w"> </span><span class="p">|</span><span class="w"> </span>head<span class="w"> </span>-n<span class="w"> </span><span class="m">1</span>
+setarch<span class="w"> </span>-R<span class="w"> </span>./addr_map<span class="w"> </span><span class="p">|</span><span class="w"> </span>head<span class="w"> </span>-n<span class="w"> </span><span class="m">1</span>
+</code></pre></div>
+<div class="hl"><pre><code class="language-text">text   main    0x555555555369
+text   main    0x555555555369
+</code></pre></div>
+<p>Chapter 1에서 gdb 안의 주소가 늘 <code>0x5555555...</code>였던 이유입니다. gdb가 같은 방식으로 ASLR을 끄고 실행합니다.</p>
+<div class="hl"><pre><code class="language-bash">rm<span class="w"> </span>-f<span class="w"> </span>a.txt<span class="w"> </span>b.txt
+</code></pre></div>
+<h3>6-8. Animation으로 정리</h3>
+<ol>
+<li><strong>프로그램 시작</strong> Scenario로 <code>execve</code> 직후의 배치를 확인합니다.</li>
+<li><strong>malloc(1000)</strong> 과 <strong>malloc(4MB)</strong> 를 차례로 선택해 어느 영역이 어떻게 변하는지 비교합니다.</li>
+<li><strong>깊은 재귀</strong>에서 <code>[stack]</code>의 아래쪽 경계가 움직이는 것을 봅니다.</li>
+<li><strong>1GB 할당 후 일부만 사용</strong>에서 오른쪽의 VSZ와 RSS 막대를 비교합니다.</li>
+</ol>
+<p class="anim">🎬 <a href="animation.html#l1" style="color:inherit"><strong>C2-1 Process Address Space Explorer</strong></a> — animation.html 에서 직접 조작해 보세요</p>
+<h3 class="guide">정리</h3><ul>
+<li>Process가 보는 주소는 Process마다 따로 주어지는 <strong>Virtual Address</strong>입니다. User Space만 128TB입니다.</li>
+<li>Kernel은 주소 공간을 <strong>VMA</strong> 단위로 관리합니다. <code>/proc/PID/maps</code>의 한 줄이 VMA 하나이고, <code>mmap()</code>은 VMA를 만드는 일입니다.</li>
+<li>작은 <code>malloc</code>은 <code>brk</code>로 <code>[heap]</code>을 늘리고, 큰 <code>malloc</code>은 <code>mmap</code>으로 별도 영역을 만듭니다. Stack은 접근하면 Kernel이 자동으로 확장합니다.</li>
+<li><strong>VSZ</strong>는 약속한 주소 범위, <strong>RSS</strong>는 실제 올라온 Physical Memory입니다. Page를 처음 건드릴 때 Physical Memory가 배정됩니다(Demand Paging).</li>
+<li>ASLR은 실행할 때마다 영역의 위치를 Page 단위로 바꿉니다. <code>setarch -R</code>로 한 번만 끌 수 있습니다.</li>
+</ul>
+<h3>생각해 볼 질문</h3><ol>
+<li><code>/proc/PID/maps</code>에서 경로가 비어 있고 장치가 <code>00:00</code>인 줄은 무엇을 의미하나요?</li>
+<li><code>malloc(1000)</code>을 했는데 <code>[heap]</code>이 132KB 생긴 이유는 무엇인가요?</li>
+<li><code>malloc(200 * 1024)</code>의 결과 주소는 <code>[heap]</code> 안에 있을까요? <code>heap_grow.c</code>를 수정해 확인해 보세요.</li>
+<li><code>top</code>에서 어떤 Process의 VIRT가 20GB, RES가 300MB입니다. 이 Process는 Memory를 얼마나 쓰고 있나요?</li>
+<li>ASLR이 켜져 있어도 주소의 마지막 3자리(16진수)가 항상 같은 이유는 무엇인가요?</li>
+</ol>
+<h3>오류 해결</h3><table>
+<thead>
+<tr>
+<th>증상</th>
+<th>원인</th>
+<th>해결</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>addr_map</code>의 LOAD 줄이 5개(문서의 Chapter 1에서는 4개)</td>
+<td>RELRO로 <code>rw-</code> 영역의 앞부분이 <code>r--</code>로 분리됨</td>
+<td>정상. L04의 RELRO가 VMA를 둘로 나눈 결과입니다</td>
+</tr>
+<tr>
+<td><code>vsz_rss</code>에서 <code>malloc: Cannot allocate memory</code></td>
+<td>Overcommit 설정이 엄격함</td>
+<td><code>cat /proc/sys/vm/overcommit_memory</code>가 2이면 <code>sudo sysctl vm.overcommit_memory=0</code></td>
+</tr>
+<tr>
+<td><code>vsz_rss</code>의 RSS 증가가 256MB보다 작음</td>
+<td>Swap 또는 Memory 부족</td>
+<td>VM Memory를 4GB로 설정했는지 확인</td>
+</tr>
+<tr>
+<td><code>setarch: unrecognized option</code></td>
+<td>오래된 util-linux</td>
+<td><code>setarch $(uname -m) -R ./addr_map</code></td>
+</tr>
+<tr>
+<td><code>pmap: command not found</code></td>
+<td>미설치</td>
+<td><code>sudo apt install -y procps</code></td>
+</tr>
+</tbody>
+</table>
+<h4 id="b6-1" class="fill">✏️ 빈칸 채우기 6-1</h4>
+<p>작은 요청과 큰 요청이 서로 다른 System Call 로 처리되는 것을 확인하는 main 입니다. <span style="color:var(--ink-soft)">(<code>src/L06/heap_grow.c</code> 54~75행)</span></p>
+<div class="hl"><pre><code class="language-c"><span class="kt">int</span><span class="w"> </span><span class="nf">main</span><span class="p">(</span><span class="kt">void</span><span class="p">)</span>
+<span class="p">{</span>
+<span class="w">    </span><span class="kt">char</span><span class="w"> </span><span class="o">*</span><span class="n">small</span><span class="p">,</span><span class="w"> </span><span class="o">*</span><span class="n">big</span><span class="p">;</span>
+
+<span class="w">    </span><span class="n">show</span><span class="p">(</span><span class="s">&quot;start&quot;</span><span class="p">);</span>
+
+<span class="w">    </span><span class="n">small</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n"><input class="blank" data-q="b6-1" data-i="0" spellcheck="false" autocomplete="off"></span><span class="p">(</span><span class="mi">1000</span><span class="p">);</span><span class="w">                   </span><span class="cm">/* 작은 요청: brk 로 Heap 확장 */</span>
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">small</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="nb">NULL</span><span class="p">)</span>
+<span class="w">        </span><span class="k">return</span><span class="w"> </span><span class="n">EXIT_FAILURE</span><span class="p">;</span>
+<span class="w">    </span><span class="n">show</span><span class="p">(</span><span class="s">&quot;after malloc(1000)&quot;</span><span class="p">);</span>
+<span class="w">    </span><span class="n">say</span><span class="p">(</span><span class="s">&quot;small&quot;</span><span class="p">,</span><span class="w"> </span><span class="p">(</span><span class="kt">void</span><span class="w"> </span><span class="o">*</span><span class="p">)</span><span class="n">small</span><span class="p">);</span>
+
+<span class="w">    </span><span class="n">big</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n"><input class="blank" data-q="b6-1" data-i="1" spellcheck="false" autocomplete="off"></span><span class="p">(</span><span class="mi">4</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="mi">1024</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="mi">1024</span><span class="p">);</span><span class="w">          </span><span class="cm">/* 큰 요청(128KB 이상): mmap */</span>
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">big</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="nb">NULL</span><span class="p">)</span>
+<span class="w">        </span><span class="k">return</span><span class="w"> </span><span class="n">EXIT_FAILURE</span><span class="p">;</span>
+<span class="w">    </span><span class="n">show</span><span class="p">(</span><span class="s">&quot;after malloc(4MB)&quot;</span><span class="p">);</span>
+<span class="w">    </span><span class="n">say</span><span class="p">(</span><span class="s">&quot;big  &quot;</span><span class="p">,</span><span class="w"> </span><span class="p">(</span><span class="kt">void</span><span class="w"> </span><span class="o">*</span><span class="p">)</span><span class="n">big</span><span class="p">);</span><span class="w">             </span><span class="cm">/* [heap] 범위 밖의 주소 */</span>
+
+<span class="w">    </span><span class="n"><input class="blank" data-q="b6-1" data-i="2" spellcheck="false" autocomplete="off"></span><span class="p">(</span><span class="n">big</span><span class="p">);</span><span class="w">                              </span><span class="cm">/* munmap 으로 즉시 반환 */</span>
+<span class="w">    </span><span class="n">free</span><span class="p">(</span><span class="n">small</span><span class="p">);</span>
+<span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="n">EXIT_SUCCESS</span><span class="p">;</span>
+<span class="p">}</span>
+</code></pre></div>
+<div class="qbar"><button class="btn check" data-q="b6-1">확인</button><button class="btn clear" data-q="b6-1">지우기</button><span class="qres" id="res-b6-1"></span></div>
+<details>
+<summary class="lock">🔒 정답 보기 6-1</summary>
+<div class="hl"><pre><code class="language-c"><span class="kt">int</span><span class="w"> </span><span class="nf">main</span><span class="p">(</span><span class="kt">void</span><span class="p">)</span>
+<span class="p">{</span>
+<span class="w">    </span><span class="kt">char</span><span class="w"> </span><span class="o">*</span><span class="n">small</span><span class="p">,</span><span class="w"> </span><span class="o">*</span><span class="n">big</span><span class="p">;</span>
+
+<span class="w">    </span><span class="n">show</span><span class="p">(</span><span class="s">&quot;start&quot;</span><span class="p">);</span>
+
+<span class="w">    </span><span class="n">small</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">malloc</span><span class="p">(</span><span class="mi">1000</span><span class="p">);</span><span class="w">                   </span><span class="cm">/* 작은 요청: brk 로 Heap 확장 */</span>
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">small</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="nb">NULL</span><span class="p">)</span>
+<span class="w">        </span><span class="k">return</span><span class="w"> </span><span class="n">EXIT_FAILURE</span><span class="p">;</span>
+<span class="w">    </span><span class="n">show</span><span class="p">(</span><span class="s">&quot;after malloc(1000)&quot;</span><span class="p">);</span>
+<span class="w">    </span><span class="n">say</span><span class="p">(</span><span class="s">&quot;small&quot;</span><span class="p">,</span><span class="w"> </span><span class="p">(</span><span class="kt">void</span><span class="w"> </span><span class="o">*</span><span class="p">)</span><span class="n">small</span><span class="p">);</span>
+
+<span class="w">    </span><span class="n">big</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">malloc</span><span class="p">(</span><span class="mi">4</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="mi">1024</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="mi">1024</span><span class="p">);</span><span class="w">          </span><span class="cm">/* 큰 요청(128KB 이상): mmap */</span>
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">big</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="nb">NULL</span><span class="p">)</span>
+<span class="w">        </span><span class="k">return</span><span class="w"> </span><span class="n">EXIT_FAILURE</span><span class="p">;</span>
+<span class="w">    </span><span class="n">show</span><span class="p">(</span><span class="s">&quot;after malloc(4MB)&quot;</span><span class="p">);</span>
+<span class="w">    </span><span class="n">say</span><span class="p">(</span><span class="s">&quot;big  &quot;</span><span class="p">,</span><span class="w"> </span><span class="p">(</span><span class="kt">void</span><span class="w"> </span><span class="o">*</span><span class="p">)</span><span class="n">big</span><span class="p">);</span><span class="w">             </span><span class="cm">/* [heap] 범위 밖의 주소 */</span>
+
+<span class="w">    </span><span class="n">free</span><span class="p">(</span><span class="n">big</span><span class="p">);</span><span class="w">                              </span><span class="cm">/* munmap 으로 즉시 반환 */</span>
+<span class="w">    </span><span class="n">free</span><span class="p">(</span><span class="n">small</span><span class="p">);</span>
+<span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="n">EXIT_SUCCESS</span><span class="p">;</span>
+<span class="p">}</span>
+</code></pre></div>
+<p>작은 malloc 은 glibc 가 <code>brk</code> 로 Heap 을 넉넉히 늘려 두고 나눠 주고, 128KB 이상(M_MMAP_THRESHOLD)의 큰 요청은 매번 <code>mmap</code> 으로 별도 영역을 만듭니다. 그래서 big 의 주소는 [heap] 범위 밖에 있고, <code>free(big)</code> 는 즉시 <code>munmap</code> 으로 반환됩니다. <code>strace -e trace=brk,mmap,munmap ./heap_grow</code> 로 확인합니다.</p>
+<p><strong>빌드와 실행</strong></p><div class="hl"><pre><code class="language-bash"><span class="nb">cd</span><span class="w"> </span>~/lsp2/ch02/src/L06
+make<span class="w"> </span>heap_grow<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span>./heap_grow
+strace<span class="w"> </span>-e<span class="w"> </span><span class="nv">trace</span><span class="o">=</span>brk,mmap,munmap<span class="w"> </span>./heap_grow<span class="w"> </span><span class="m">2</span>&gt;<span class="p">&amp;</span><span class="m">1</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>tail<span class="w"> </span>-n<span class="w"> </span><span class="m">5</span>
+</code></pre></div>
+</details>
+
+<h4 id="p6-2" class="fill">✏️ 괄호 넣기 6-2</h4>
+<ol>
+<li><code>/proc/PID/maps</code> 의 한 줄은 Kernel 안의 <input class="blank pb" data-q="p6-2" data-i="0" spellcheck="false" autocomplete="off"> 객체 하나에 해당한다.</li>
+<li>Process 가 차지하는 가상 주소 공간의 크기는 <input class="blank pb" data-q="p6-2" data-i="1" spellcheck="false" autocomplete="off"> , 실제로 Physical Memory 에 올라와 있는 크기는 <input class="blank pb" data-q="p6-2" data-i="2" spellcheck="false" autocomplete="off"> 이다.</li>
+<li><code>malloc(1GB)</code> 직후 RSS 가 거의 늘지 않는 이유는 Page 를 처음 건드리는 순간 할당하는 <input class="blank pb" data-q="p6-2" data-i="3" spellcheck="false" autocomplete="off"> 때문이다.</li>
+<li>실행할 때마다 Stack, Heap, Library 주소가 바뀌는 보안 기법은 <input class="blank pb" data-q="p6-2" data-i="4" spellcheck="false" autocomplete="off"> 이며, <code>setarch -R</code> 로 끌 수 있다.</li>
+</ol>
+<div class="qbar"><button class="btn check" data-q="p6-2">확인</button><button class="btn clear" data-q="p6-2">지우기</button><span class="qres" id="res-p6-2"></span></div>
+<details>
+<summary class="lock">🔒 정답 보기 6-2</summary>
+<ol><li>VMA</li><li>VSZ</li><li>RSS</li><li>Demand Paging</li><li>ASLR</li></ol>
+<p>maps 의 한 줄 = VMA 하나이고, mmap() 이 하는 일은 VMA 를 만드는 것뿐입니다. VSZ 는 약속(VMA 크기의 합), RSS 는 실제로 Physical Memory 에 있는 Page 입니다. 둘의 차이가 Demand Paging 이고, 주소가 실행마다 바뀌는 것은 ASLR 입니다(🎬 C2-1).</p>
+</details>
+
+<blockquote><p><strong>다음</strong> — Process마다 같은 주소(<code>0x555555555369</code>)를 쓸 수 있고, 주소 범위는 128TB나 됩니다. 그러면 CPU는 이 가상의 번호를 <strong>어떻게 실제 Memory 위치로 바꿀까요?</strong>
+<a href="#sec2">L07. Virtual Address와 Page Table</a></p></blockquote>
+</section>
+<section id="sec2" class="lesson"><header class="sec-head"><span class="period">Lecture 07</span><h1>Virtual Address와 Page Table</h1><span class="time">영상 18분</span></header>
+<p>CPU는 Memory에 접근할 때마다 Virtual Address를 Physical Address로 바꿉니다. 그 변환표가 Page Table입니다.</p>
+<p class="goal-title"><strong>학습 목표</strong></p><ul>
+<li>Page, Frame, VPN, PFN, Offset의 의미를 설명할 수 있다.</li>
+<li>x86-64의 4-Level Page Table에서 Virtual Address가 어떻게 분해되는지 계산할 수 있다.</li>
+<li>Page Table을 여러 Level로 나누는 이유를 설명할 수 있다.</li>
+<li>PTE의 주요 Flag(Present, R/W, U/S, NX, Accessed, Dirty)의 역할을 설명할 수 있다.</li>
+<li><code>/proc/PID/pagemap</code>으로 Virtual Page의 Physical Frame을 확인하고, fork 후 COW를 PFN으로 검증할 수 있다.</li>
+</ul>
+<p class="anim">🎬 <a href="animation.html#l2" style="color:inherit"><strong>C2-2 Virtual Address Translator</strong></a> — animation.html 에서 단계별로 조작</p>
+<h3>준비</h3><div class="hl"><pre><code class="language-bash"><span class="nb">cd</span><span class="w"> </span>~/lsp2/ch02/src/L07
+make
+</code></pre></div>
+<h3>7-1. 왜 Byte 단위가 아니라 Page 단위인가</h3>
+<p>Virtual Address마다 Physical Address를 따로 기록한다면 변환표가 Memory보다 커집니다. 그래서 주소 공간을 <strong>고정 크기 조각</strong>으로 나누고 조각 단위로 대응시킵니다.</p>
+<div class="hl"><pre><code class="language-bash">getconf<span class="w"> </span>PAGESIZE
+</code></pre></div>
+<div class="hl"><pre><code class="language-text">4096
+</code></pre></div>
+<table>
+<thead>
+<tr>
+<th>용어</th>
+<th>의미</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Page</strong></td>
+<td>Virtual 주소 공간의 4KB 조각</td>
+</tr>
+<tr>
+<td><strong>Frame</strong> (Page Frame)</td>
+<td>Physical Memory의 4KB 조각</td>
+</tr>
+<tr>
+<td><strong>VPN</strong> (Virtual Page Number)</td>
+<td>Virtual Address ÷ 4096</td>
+</tr>
+<tr>
+<td><strong>PFN</strong> (Page Frame Number)</td>
+<td>Physical Address ÷ 4096</td>
+</tr>
+<tr>
+<td><strong>Offset</strong></td>
+<td>조각 안에서의 위치. 하위 12bit. <strong>변환되지 않고 그대로 복사</strong></td>
+</tr>
+</tbody>
+</table>
+<div class="hl"><pre><code class="language-text">Virtual Address  = [        VPN        ][ Offset 12bit ]
+                             │ Page Table 이 바꿔 준다        │ 그대로
+                             ▼                              ▼
+Physical Address = [        PFN        ][ Offset 12bit ]
+</code></pre></div>
+<p>L06에서 본 것들이 모두 4KB 단위였던 이유입니다: maps의 주소 범위, ASLR의 끝 3자리(<code>0x369</code> = Offset), ELF <code>LOAD</code>의 <code>Align 0x1000</code>, 권한이 Page 단위로만 부여되는 것.</p>
+<h3>7-2. 주소를 쪼개 보기</h3>
+<p>x86-64는 (기본 설정에서) 64bit 중 <strong>48bit</strong>만 주소로 사용합니다. VPN 36bit를 다시 <strong>9bit씩 4개</strong>로 나눕니다.</p>
+<div class="hl"><pre><code class="language-text"> 63      48 47    39 38    30 29    21 20    12 11         0
+┌──────────┬────────┬────────┬────────┬────────┬────────────┐
+│ 부호 확장 │  PGD   │  PUD   │  PMD   │  PTE   │   Offset   │
+│  16bit   │  9bit  │  9bit  │  9bit  │  9bit  │   12bit    │
+└──────────┴────────┴────────┴────────┴────────┴────────────┘
+</code></pre></div>
+<p><a href="src/L07/va_split.c">va_split.c</a>로 분해합니다.</p>
+<div class="hl"><pre><code class="language-bash">./va_split<span class="w"> </span>7ffd1234abcd
+</code></pre></div>
+<div class="hl"><pre><code class="language-text">VA            = 0x00007ffd1234abcd
+  PGD index   = 255   (bit 47..39)
+  PUD index   = 500   (bit 38..30)
+  PMD index   = 145   (bit 29..21)
+  PTE index   = 330   (bit 20..12)
+  Offset      = 0xbcd (bit 11..0)
+  VPN         = 0x7ffd1234a
+</code></pre></div>
+<p>9bit이므로 각 Index는 0~511입니다. 각 Level의 Table은 <strong>Entry 512개 × 8Byte = 4096Byte</strong>, 정확히 Page 하나입니다. 우연이 아니라 그렇게 되도록 설계한 숫자입니다.</p>
+<p>L06의 <code>addr_map</code>이 출력한 주소들도 넣어 보세요. Stack 주소(<code>0x7ffd...</code>)는 PGD Index가 255(User 영역의 맨 끝), 실행 File(<code>0x55...</code>)은 170 근처가 나옵니다.</p>
+<blockquote>
+<p><strong>📌 NOTE</strong><br />
+Linux의 이름은 PGD(Page Global Directory) → P4D → PUD(Upper) → PMD(Middle) → PTE입니다. 4-Level에서는 P4D가 접혀서 없는 것처럼 동작합니다. Intel 문서의 이름은 PML4 → PDPT → PD → PT입니다. 57bit 주소를 쓰는 5-Level Paging도 있지만 일반 환경에서는 4-Level을 씁니다.</p>
+</blockquote>
+<h3>7-3. 왜 4-Level인가</h3>
+<p>VPN 36bit를 한 단계로 찾는 Table을 만들면 2^36개 × 8Byte = <strong>512GB</strong>가 Process마다 필요합니다. 대부분의 Process는 128TB 중 극히 일부만 쓰는데도 그렇습니다.</p>
+<p>Table을 나무 구조로 나누면 <strong>쓰지 않는 범위의 하위 Table은 만들지 않아도 됩니다.</strong></p>
+<div class="hl"><pre><code class="language-text">CR3 ──→ PGD (4KB)
+         ├─ [170] ──→ PUD ──→ PMD ──→ PTE Table ──→ 실행 File, Heap 의 Frame 들
+         ├─ [171..253]  비어 있음 → 하위 Table 없음 (Memory 0)
+         ├─ [254] ──→ PUD ──→ PMD ──→ PTE Table ──→ libc, mmap 의 Frame 들
+         └─ [255] ──→ PUD ──→ PMD ──→ PTE Table ──→ Stack 의 Frame 들
+</code></pre></div>
+<table>
+<thead>
+<tr>
+<th>Level</th>
+<th>Entry 하나가 담당하는 범위</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>PGD</td>
+<td>512GB</td>
+</tr>
+<tr>
+<td>PUD</td>
+<td>1GB</td>
+</tr>
+<tr>
+<td>PMD</td>
+<td>2MB</td>
+</tr>
+<tr>
+<td>PTE</td>
+<td>4KB</td>
+</tr>
+</tbody>
+</table>
+<p><code>hello</code> 같은 작은 Process의 Page Table은 Table 10여 개(수십 KB)로 충분합니다.</p>
+<p><strong>CR3 Register</strong>에는 현재 Process의 PGD가 있는 <strong>Physical Address</strong>가 들어 있습니다. Context Switch 때 Kernel이 CR3를 바꾸면 주소 공간 전체가 바뀝니다. 서로 다른 Process가 같은 Virtual Address <code>0x555555555369</code>를 써도 충돌하지 않는 이유입니다.</p>
+<blockquote>
+<p><strong>❗ IMPORTANT</strong><br />
+변환은 Kernel Software가 아니라 <strong>CPU 안의 MMU(Memory Management Unit) Hardware</strong>가 Memory 접근마다 수행합니다. Kernel의 역할은 Table의 내용을 채우고 CR3를 설정하는 것까지입니다.</p>
+</blockquote>
+<h3>7-4. Animation: 주소 변환 따라가기</h3>
+<ol>
+<li>입력란에 <code>0x7ffd1234abcd</code>를 넣고 <strong>변환 시작</strong>을 누른 뒤 Next Step으로 넘깁니다. 7-2의 <code>va_split</code> 결과와 Index가 같은지 확인합니다.</li>
+<li>각 Level에서 "Table의 Physical Address + Index × 8"로 Entry를 읽는 과정을 봅니다. <strong>Memory를 4번 읽어야</strong> 변환이 끝납니다.</li>
+<li>마지막에 PFN과 Offset이 합쳐져 Physical Address가 되는 것을 확인합니다.</li>
+<li>TLB 선택을 <strong>Hit</strong>로 바꿔 같은 주소를 다시 변환해 보세요. 몇 단계가 사라지는지가 다음 Lecture의 주제입니다.</li>
+</ol>
+<p class="anim">🎬 <a href="animation.html#l2" style="color:inherit"><strong>C2-2 Virtual Address Translator</strong></a> — animation.html 에서 직접 조작해 보세요</p>
+<h3>7-5. PTE에는 무엇이 들어 있는가</h3>
+<p>PTE 하나는 64bit입니다. PFN과 함께 <strong>Flag</strong>가 들어 있고, MMU는 변환할 때 이 Flag를 검사합니다.</p>
+<div class="hl"><pre><code class="language-text"> 63  62..52  51 ............ 12  11..9  8  7  6  5  4  3  2   1   0
+┌───┬───────┬──────────────────┬──────┬──┬──┬──┬──┬──┬──┬───┬───┬───┐
+│NX │       │       PFN        │      │G │  │D │A │  │  │U/S│R/W│ P │
+└───┴───────┴──────────────────┴──────┴──┴──┴──┴──┴──┴──┴───┴───┴───┘
+</code></pre></div>
+<table>
+<thead>
+<tr>
+<th>Flag</th>
+<th>의미</th>
+<th>위반하면</th>
+<th>이 과정에서 만난 곳</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>P</strong> Present</td>
+<td>이 Page가 Physical Memory에 있다</td>
+<td>Page Fault</td>
+<td>Demand Paging (L06, L09)</td>
+</tr>
+<tr>
+<td><strong>R/W</strong></td>
+<td>1이면 쓰기 허용</td>
+<td>Page Fault</td>
+<td><code>.rodata</code> 쓰기, RELRO(L04), COW</td>
+</tr>
+<tr>
+<td><strong>U/S</strong></td>
+<td>1이면 Ring 3 접근 허용</td>
+<td>Page Fault</td>
+<td>Kernel 영역 보호 (L01)</td>
+</tr>
+<tr>
+<td><strong>NX</strong></td>
+<td>1이면 실행 금지</td>
+<td>Page Fault</td>
+<td>W^X, <code>GNU_STACK</code> (L03)</td>
+</tr>
+<tr>
+<td><strong>A</strong> Accessed</td>
+<td>접근하면 CPU가 1로 설정</td>
+<td></td>
+<td>Kernel이 "최근에 쓴 Page"를 판단 (Reclaim)</td>
+</tr>
+<tr>
+<td><strong>D</strong> Dirty</td>
+<td>쓰면 CPU가 1로 설정</td>
+<td></td>
+<td>File로 되돌려 써야 하는가 (Chapter 3)</td>
+</tr>
+</tbody>
+</table>
+<p>maps에서 본 <code>r-xp</code>, <code>rw-p</code> 같은 VMA의 권한이 이 Flag로 옮겨져 Hardware에 의해 강제됩니다.</p>
+<table>
+<thead>
+<tr>
+<th></th>
+<th>VMA</th>
+<th>PTE</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>누가 읽는가</td>
+<td>Kernel (Software)</td>
+<td>MMU (Hardware)</td>
+</tr>
+<tr>
+<td>단위</td>
+<td>연속된 주소 범위</td>
+<td>Page 하나</td>
+</tr>
+<tr>
+<td>의미</td>
+<td>"이렇게 <strong>되어야 한다</strong>"는 약속</td>
+<td>"지금 <strong>이렇게 되어 있다</strong>"는 현재 상태</td>
+</tr>
+<tr>
+<td>만들어지는 때</td>
+<td><code>mmap</code>, <code>brk</code>, <code>execve</code></td>
+<td>그 Page를 처음 접근할 때 (Page Fault)</td>
+</tr>
+</tbody>
+</table>
+<p>둘이 다를 수 있다는 점이 핵심입니다. VMA는 <code>rw-</code>인데 PTE의 R/W가 0이면? 그것이 COW입니다(7-8).</p>
+<h3>7-6. pagemap으로 Physical Frame 확인</h3>
+<p><code>/proc/PID/pagemap</code>은 Virtual Page마다 8Byte씩, 그 Page의 상태를 알려 주는 File입니다. <a href="src/L07/pagemap.c">pagemap.c</a>는 VPN × 8 위치를 <code>pread</code>로 읽습니다.</p>
+<div class="hl"><pre><code class="language-bash">./pagemap
+</code></pre></div>
+<div class="hl"><pre><code class="language-text">page0 (건드리기 전) VA 0x7fac90828000  present=0
+page0 (쓴 뒤)        VA 0x7fac90828000  present=1  PFN (root 권한 필요)
+page1 (건드리지 않음) VA 0x7fac90829000  present=0
+main 함수의 코드  VA 0x565363eb8407  present=1  PFN (root 권한 필요)
+</code></pre></div>
+<p><code>mmap</code>으로 3 Page를 받았지만 <strong>건드리기 전에는 present=0</strong>, 즉 PTE가 없습니다. 한 Byte를 쓰자 그 Page만 present=1이 되었고 옆 Page는 여전히 0입니다. L06의 VSZ/RSS 차이를 Page 단위로 본 것입니다.</p>
+<p>PFN은 보안상 root에게만 보입니다(Rowhammer 같은 Hardware 공격에 Physical 위치 정보가 악용되기 때문).</p>
+<div class="hl"><pre><code class="language-bash">sudo<span class="w"> </span>./pagemap
+</code></pre></div>
+<div class="hl"><pre><code class="language-text">page0 (건드리기 전) VA 0x7fac90828000  present=0
+page0 (쓴 뒤)        VA 0x7fac90828000  present=1  PFN 0x12e39d  PA 0x12e39d000
+page1 (건드리지 않음) VA 0x7fac90829000  present=0
+main 함수의 코드  VA 0x565363eb8407  present=1  PFN 0x12987e  PA 0x12987e407
+</code></pre></div>
+<p><code>PA = PFN × 4096 + Offset</code>입니다. <code>main</code>의 VA 끝 3자리 <code>407</code>이 PA의 끝 3자리와 같습니다. Offset은 변환되지 않습니다.</p>
+<h3>7-7. Page Table도 Memory를 쓴다</h3>
+<p><a href="src/L07/vmpte.c">vmpte.c</a>는 1GB를 <code>mmap</code>하고 절반을 Page마다 건드린 뒤 <code>VmPTE</code>(이 Process의 Page Table이 차지하는 Memory)를 출력합니다.</p>
+<div class="hl"><pre><code class="language-bash">./vmpte
+</code></pre></div>
+<div class="hl"><pre><code class="language-text">mmap(1GB) 직후                    VmRSS:	    1552 kB  VmPTE:	      44 kB
+512MB 를 Page 마다 건드린 뒤  VmRSS:	  525840 kB  VmPTE:	    1072 kB
+munmap 뒤                          VmRSS:	    1552 kB  VmPTE:	      44 kB
+</code></pre></div>
+<ul>
+<li><code>mmap(1GB)</code> 직후에는 VmPTE가 늘지 않습니다. VMA만 만들었고 Page Table은 건드리지 않았습니다.</li>
+<li>512MB = 131,072 Page. PTE 하나가 8Byte이므로 <strong>131,072 × 8 = 1,048,576Byte ≈ 1MB</strong>. 늘어난 양(약 1028KB)과 일치합니다.</li>
+</ul>
+<p>Page Table 비용은 Data의 약 <strong>1/512(0.2%)</strong> 입니다. 작아 보이지만 Process가 수백 개이고 각자 수 GB를 Mapping하는 Database Server에서는 Page Table만 수 GB가 되기도 합니다. Huge Page(L08)가 해결책 중 하나입니다.</p>
+<h3>7-8. fork와 COW를 PFN으로 확인</h3>
+<p>기존 과정에서 "fork는 Memory를 복사하지 않고, 쓰는 순간 복사한다(Copy On Write)"고 배웠습니다. 이제 증거를 볼 수 있습니다. <a href="src/L07/cow_pfn.c">cow_pfn.c</a></p>
+<div class="hl"><pre><code class="language-bash">sudo<span class="w"> </span>./cow_pfn
+</code></pre></div>
+<div class="hl"><pre><code class="language-text">VA 0x557306d73000 는 Parent 와 Child 에서 동일합니다
+[parent] fork 전        PFN 0x124dc9
+[child ] fork 직후      PFN 0x124dc9   &lt;- Parent 와 같은 Frame
+[child ] 쓰기 후        PFN 0x124dcc   &lt;- 새 Frame 으로 복사됨
+[parent] Child 종료 후  PFN 0x124dc9   p[0] = &#39;P&#39;
+</code></pre></div>
+<p><code>fork</code>가 실제로 하는 일을 Page Table 관점에서 정리합니다.</p>
+<div class="hl"><pre><code class="language-text">fork()
+  1. Child 용 mm_struct 와 VMA 목록을 복사한다                (약속의 복사)
+  2. Parent 의 Page Table 을 복사한다. Frame 은 복사하지 않는다  (같은 PFN 을 가리킴)
+  3. 쓰기 가능한 Private Page 는 Parent 와 Child 양쪽 PTE 의 R/W 를 0 으로 바꾼다
+
+Child 가 p[0] = &#39;C&#39; 실행
+  4. MMU: PTE 의 R/W = 0 인데 쓰기 → Page Fault
+  5. Kernel: VMA 를 확인한다. rw- 이다 → 잘못된 접근이 아니라 COW 다
+  6. 새 Frame 을 할당해 4KB 를 복사하고, Child 의 PTE 를 새 PFN + R/W = 1 로 바꾼다
+  7. 같은 명령을 다시 실행한다 → 이번에는 성공
+</code></pre></div>
+<p>5번이 7-5에서 말한 "VMA(약속)와 PTE(현재 상태)가 다른 경우"입니다. <code>fork</code>가 Process 크기와 거의 무관하게 빠른 이유, 그리고 <code>fork</code> 직후 <code>exec</code>하는 Shell의 방식이 낭비가 아닌 이유입니다.</p>
+<blockquote>
+<p><strong>💡 TIP</strong><br />
+<code>cow_pfn.c</code>에는 <code>fork()</code> 직전과 Child의 <code>_exit()</code> 직전에 <code>fflush(stdout)</code>이 있습니다. 출력을 Pipe로 보낼 때 stdio Buffer가 Child에 복제되어 중복 출력되거나, <code>_exit</code>이 Flush를 건너뛰어 출력이 사라지는 것을 막기 위해서입니다(L05의 <code>exit</code> vs <code>_exit</code>).</p>
+</blockquote>
+<h3 class="guide">정리</h3><ul>
+<li>주소 변환은 4KB <strong>Page</strong> 단위입니다. VPN이 PFN으로 바뀌고 Offset 12bit는 그대로입니다.</li>
+<li>x86-64는 48bit 주소를 <strong>9 + 9 + 9 + 9 + 12</strong>로 나눠 4-Level Table(PGD → PUD → PMD → PTE)을 따라갑니다. 쓰지 않는 범위의 Table은 만들지 않으므로 Memory가 절약됩니다.</li>
+<li><strong>CR3</strong>가 PGD의 Physical Address를 가리키고, 변환은 <strong>MMU Hardware</strong>가 수행합니다. Process마다 CR3가 다르므로 같은 Virtual Address가 다른 Frame을 가리킵니다.</li>
+<li><strong>PTE</strong>에는 PFN과 Flag(Present, R/W, U/S, NX, Accessed, Dirty)가 있습니다. VMA가 약속이라면 PTE는 현재 상태입니다.</li>
+<li>PTE는 Page를 처음 접근할 때 만들어집니다. Page Table 자체도 Data의 약 1/512만큼 Memory를 씁니다.</li>
+<li><code>fork</code>는 Page Table만 복사하고 R/W를 0으로 만듭니다. 쓰는 순간의 Page Fault에서 복사가 일어납니다.</li>
+</ul>
+<h3>생각해 볼 질문</h3><ol>
+<li>Virtual Address <code>0x0000555555555369</code>의 PTE Index와 Offset을 손으로 계산한 뒤 <code>./va_split 555555555369</code>로 확인해 보세요.</li>
+<li>각 Level의 Table 크기가 정확히 4KB인 이유를 Index의 bit 수로 설명해 보세요.</li>
+<li>1-Level Page Table 대신 4-Level을 쓰면 얻는 것과 잃는 것은 각각 무엇인가요?</li>
+<li>VMA의 권한은 <code>rw-p</code>인데 PTE의 R/W bit가 0인 Page는 어떤 상황인가요?</li>
+<li><code>vmpte</code>에서 512MB 대신 1GB 전체를 건드리면 VmPTE는 대략 얼마가 될까요?</li>
+</ol>
+<h3>오류 해결</h3><table>
+<thead>
+<tr>
+<th>증상</th>
+<th>원인</th>
+<th>해결</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>PFN (root 권한 필요)</code>만 나옴</td>
+<td>일반 사용자에게는 PFN이 0으로 보임</td>
+<td><code>sudo ./pagemap</code></td>
+</tr>
+<tr>
+<td><code>sudo ./cow_pfn</code>에서 세 PFN이 모두 같음</td>
+<td>THP 등으로 환경에 따라 드물게 발생</td>
+<td>다시 실행. 계속되면 <code>posix_memalign</code> 크기를 <code>4096 * 4</code>로 늘리고 재시도</td>
+</tr>
+<tr>
+<td><code>vmpte</code>의 VmPTE 증가가 훨씬 작음</td>
+<td>THP가 적용되어 2MB Page 사용</td>
+<td>Source의 <code>MADV_NOHUGEPAGE</code>가 있는지 확인, <code>make clean &amp;&amp; make</code></td>
+</tr>
+<tr>
+<td><code>open pagemap: Permission denied</code></td>
+<td>Container 등 제한된 환경</td>
+<td>VM에서 실행</td>
+</tr>
+</tbody>
+</table>
+<h4 id="b7-1" class="fill">✏️ 빈칸 채우기 7-1</h4>
+<p>48bit Virtual Address 를 4-Level Page Table Index 와 Offset 으로 나누는 함수입니다. 각 단계는 9bit, Offset 은 12bit 입니다. <span style="color:var(--ink-soft)">(<code>src/L07/va_split.c</code> 5~14행)</span></p>
+<div class="hl"><pre><code class="language-c"><span class="k">static</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="nf">split</span><span class="p">(</span><span class="kt">unsigned</span><span class="w"> </span><span class="kt">long</span><span class="w"> </span><span class="n">va</span><span class="p">)</span>
+<span class="p">{</span>
+<span class="w">    </span><span class="n">printf</span><span class="p">(</span><span class="s">&quot;VA            = 0x%016lx</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">va</span><span class="p">);</span>
+<span class="w">    </span><span class="n">printf</span><span class="p">(</span><span class="s">&quot;  PGD index   = %3lu   (bit 47..<input class="blank" data-q="b7-1" data-i="0" spellcheck="false" autocomplete="off">)</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">,</span><span class="w"> </span><span class="p">(</span><span class="n">va</span><span class="w"> </span><span class="o">&gt;&gt;</span><span class="w"> </span><span class="mi">39</span><span class="p">)</span><span class="w"> </span><span class="o">&amp;</span><span class="w"> </span><span class="mh">0x1ff</span><span class="p">);</span>
+<span class="w">    </span><span class="n">printf</span><span class="p">(</span><span class="s">&quot;  PUD index   = %3lu   (bit 38..<input class="blank" data-q="b7-1" data-i="1" spellcheck="false" autocomplete="off">)</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">,</span><span class="w"> </span><span class="p">(</span><span class="n">va</span><span class="w"> </span><span class="o">&gt;&gt;</span><span class="w"> </span><span class="mi">30</span><span class="p">)</span><span class="w"> </span><span class="o">&amp;</span><span class="w"> </span><span class="mh">0x1ff</span><span class="p">);</span>
+<span class="w">    </span><span class="n">printf</span><span class="p">(</span><span class="s">&quot;  PMD index   = %3lu   (bit 29..<input class="blank" data-q="b7-1" data-i="2" spellcheck="false" autocomplete="off">)</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">,</span><span class="w"> </span><span class="p">(</span><span class="n">va</span><span class="w"> </span><span class="o">&gt;&gt;</span><span class="w"> </span><span class="mi">21</span><span class="p">)</span><span class="w"> </span><span class="o">&amp;</span><span class="w"> </span><span class="mh">0x1ff</span><span class="p">);</span>
+<span class="w">    </span><span class="n">printf</span><span class="p">(</span><span class="s">&quot;  PTE index   = %3lu   (bit 20..12)</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">,</span><span class="w"> </span><span class="p">(</span><span class="n">va</span><span class="w"> </span><span class="o">&gt;&gt;</span><span class="w"> </span><span class="mi">12</span><span class="p">)</span><span class="w"> </span><span class="o">&amp;</span><span class="w"> </span><span class="n"><input class="blank" data-q="b7-1" data-i="3" spellcheck="false" autocomplete="off"></span><span class="p">);</span>
+<span class="w">    </span><span class="n">printf</span><span class="p">(</span><span class="s">&quot;  Offset      = 0x%03lx (bit 11..0)</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">va</span><span class="w"> </span><span class="o">&amp;</span><span class="w"> </span><span class="n"><input class="blank" data-q="b7-1" data-i="4" spellcheck="false" autocomplete="off"></span><span class="p">);</span>
+<span class="w">    </span><span class="n">printf</span><span class="p">(</span><span class="s">&quot;  VPN         = 0x%lx</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">va</span><span class="w"> </span><span class="o">&gt;&gt;</span><span class="w"> </span><span class="mi">12</span><span class="p">);</span>
+<span class="p">}</span>
+</code></pre></div>
+<div class="qbar"><button class="btn check" data-q="b7-1">확인</button><button class="btn clear" data-q="b7-1">지우기</button><span class="qres" id="res-b7-1"></span></div>
+<details>
+<summary class="lock">🔒 정답 보기 7-1</summary>
+<div class="hl"><pre><code class="language-c"><span class="k">static</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="nf">split</span><span class="p">(</span><span class="kt">unsigned</span><span class="w"> </span><span class="kt">long</span><span class="w"> </span><span class="n">va</span><span class="p">)</span>
+<span class="p">{</span>
+<span class="w">    </span><span class="n">printf</span><span class="p">(</span><span class="s">&quot;VA            = 0x%016lx</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">va</span><span class="p">);</span>
+<span class="w">    </span><span class="n">printf</span><span class="p">(</span><span class="s">&quot;  PGD index   = %3lu   (bit 47..39)</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">,</span><span class="w"> </span><span class="p">(</span><span class="n">va</span><span class="w"> </span><span class="o">&gt;&gt;</span><span class="w"> </span><span class="mi">39</span><span class="p">)</span><span class="w"> </span><span class="o">&amp;</span><span class="w"> </span><span class="mh">0x1ff</span><span class="p">);</span>
+<span class="w">    </span><span class="n">printf</span><span class="p">(</span><span class="s">&quot;  PUD index   = %3lu   (bit 38..30)</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">,</span><span class="w"> </span><span class="p">(</span><span class="n">va</span><span class="w"> </span><span class="o">&gt;&gt;</span><span class="w"> </span><span class="mi">30</span><span class="p">)</span><span class="w"> </span><span class="o">&amp;</span><span class="w"> </span><span class="mh">0x1ff</span><span class="p">);</span>
+<span class="w">    </span><span class="n">printf</span><span class="p">(</span><span class="s">&quot;  PMD index   = %3lu   (bit 29..21)</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">,</span><span class="w"> </span><span class="p">(</span><span class="n">va</span><span class="w"> </span><span class="o">&gt;&gt;</span><span class="w"> </span><span class="mi">21</span><span class="p">)</span><span class="w"> </span><span class="o">&amp;</span><span class="w"> </span><span class="mh">0x1ff</span><span class="p">);</span>
+<span class="w">    </span><span class="n">printf</span><span class="p">(</span><span class="s">&quot;  PTE index   = %3lu   (bit 20..12)</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">,</span><span class="w"> </span><span class="p">(</span><span class="n">va</span><span class="w"> </span><span class="o">&gt;&gt;</span><span class="w"> </span><span class="mi">12</span><span class="p">)</span><span class="w"> </span><span class="o">&amp;</span><span class="w"> </span><span class="mh">0x1ff</span><span class="p">);</span>
+<span class="w">    </span><span class="n">printf</span><span class="p">(</span><span class="s">&quot;  Offset      = 0x%03lx (bit 11..0)</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">va</span><span class="w"> </span><span class="o">&amp;</span><span class="w"> </span><span class="mh">0xfff</span><span class="p">);</span>
+<span class="w">    </span><span class="n">printf</span><span class="p">(</span><span class="s">&quot;  VPN         = 0x%lx</span><span class="se">\n</span><span class="s">&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">va</span><span class="w"> </span><span class="o">&gt;&gt;</span><span class="w"> </span><span class="mi">12</span><span class="p">);</span>
+<span class="p">}</span>
+</code></pre></div>
+<p>x86-64 4-Level Paging 은 47..39(PGD) · 38..30(PUD) · 29..21(PMD) · 20..12(PTE) 의 9bit Index 네 개와 11..0 의 12bit Offset 입니다. 9bit 의 Mask 는 <code>0x1ff</code>(511), 12bit 는 <code>0xfff</code> 입니다. Table 하나 = Entry 512개 × 8Byte = 4KB = Page 하나.</p>
+<p><strong>빌드와 실행</strong></p><div class="hl"><pre><code class="language-bash"><span class="nb">cd</span><span class="w"> </span>~/lsp2/ch02/src/L07
+make<span class="w"> </span>va_split<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span>./va_split<span class="w"> </span>7ffd1234abcd
+</code></pre></div>
+</details>
+
+<h4 id="p7-2" class="fill">✏️ 괄호 넣기 7-2</h4>
+<ol>
+<li>4KB Page 에서 Virtual Address 의 하위 <input class="blank pb" data-q="p7-2" data-i="0" spellcheck="false" autocomplete="off"> bit 는 변환되지 않고 그대로 Physical Address 의 Offset 이 된다.</li>
+<li>현재 Process 의 최상위 Page Table(PGD) 의 Physical Address 를 담는 CPU Register 는 <input class="blank pb" data-q="p7-2" data-i="1" spellcheck="false" autocomplete="off"> 이다.</li>
+<li>PTE 의 Flag 중 Physical Memory 에 있는지를 나타내는 bit 는 <input class="blank pb" data-q="p7-2" data-i="2" spellcheck="false" autocomplete="off"> bit 이다.</li>
+<li>fork 직후 부모와 자식은 같은 Physical Page 를 공유하고, PTE 의 R/W 를 0 으로 바꿔 두었다가 쓰는 순간 복사하는 기법은 <input class="blank pb" data-q="p7-2" data-i="3" spellcheck="false" autocomplete="off"> 이다.</li>
+</ol>
+<div class="qbar"><button class="btn check" data-q="p7-2">확인</button><button class="btn clear" data-q="p7-2">지우기</button><span class="qres" id="res-p7-2"></span></div>
+<details>
+<summary class="lock">🔒 정답 보기 7-2</summary>
+<ol><li>12</li><li>CR3</li><li>Present</li><li>COW</li></ol>
+<p>Offset 12bit 는 그대로 두고 VPN 만 PFN 으로 바뀝니다. 변환표의 뿌리는 CR3 에 있고 Context Switch 때 CR3 를 바꾸면 주소 공간 전체가 바뀝니다. PTE = PFN + Flag(P, R/W, U/S, NX, A/D)이며, fork 는 Page Table 만 복사한 뒤 COW 로 실제 복사를 미룹니다(🎬 C2-2).</p>
+</details>
+
+<blockquote><p><strong>다음</strong> — Memory에 한 번 접근하려면 Page Table을 위해 Memory를 <strong>네 번 더</strong> 읽어야 합니다. 이대로라면 모든 프로그램이 5배 느려져야 합니다. 실제로는 그렇지 않습니다. 왜일까요?
+<a href="#sec3">L08. TLB와 Address Translation</a></p></blockquote>
+</section>
+<section id="sec3" class="lesson"><header class="sec-head"><span class="period">Lecture 08</span><h1>TLB와 Address Translation</h1><span class="time">영상 16분</span></header>
+<p>Memory 접근 한 번에 Page Table을 네 번 읽어야 한다면 너무 느립니다. CPU는 최근의 변환 결과를 TLB라는 작은 Cache에 기억해 둡니다.</p>
+<p class="goal-title"><strong>학습 목표</strong></p><ul>
+<li>TLB가 무엇을 Cache하는지, Hit와 Miss에서 각각 무슨 일이 일어나는지 설명할 수 있다.</li>
+<li>TLB Miss와 Page Fault의 차이를 설명할 수 있다.</li>
+<li>Memory 접근 Pattern이 TLB 효율에 미치는 영향을 측정할 수 있다.</li>
+<li>Context Switch와 TLB Flush, PCID의 관계를 설명할 수 있다.</li>
+<li>Huge Page가 TLB 효율을 높이는 원리를 설명하고 THP를 적용해 볼 수 있다.</li>
+</ul>
+<p class="anim">🎬 <a href="animation.html#l3" style="color:inherit"><strong>C2-3 TLB Hit / Miss Simulator</strong></a> — animation.html 에서 단계별로 조작</p>
+<h3>준비</h3><div class="hl"><pre><code class="language-bash"><span class="nb">cd</span><span class="w"> </span>~/lsp2/ch02/src/L08
+make
+</code></pre></div>
+<h3>8-1. 문제: Memory 접근이 5배 느려진다</h3>
+<p>L07에서 본 변환 과정입니다.</p>
+<div class="hl"><pre><code class="language-text">mov (%rax), %ebx        ← Memory 에서 4 Byte 를 읽는 명령 하나
+
+  ① PGD Entry 읽기     (Memory 접근)
+  ② PUD Entry 읽기     (Memory 접근)
+  ③ PMD Entry 읽기     (Memory 접근)
+  ④ PTE 읽기           (Memory 접근)
+  ⑤ 실제 Data 읽기      (Memory 접근)
+</code></pre></div>
+<p>명령어를 가져오는 것(Fetch)도 Memory 접근이므로 같은 과정을 거칩니다. Main Memory 접근이 약 100ns라면 변환만으로 400ns가 추가됩니다.</p>
+<p>다행히 프로그램에는 <strong>지역성(Locality)</strong> 이 있습니다. 방금 접근한 Page를 곧 다시 접근합니다. 같은 Page 안의 4096개 주소는 <strong>모두 같은 변환 결과</strong>(VPN → PFN)를 씁니다. 그렇다면 결과를 기억해 두면 됩니다.</p>
+<h3>8-2. TLB의 구조</h3>
+<p><strong>TLB(Translation Lookaside Buffer)</strong> 는 CPU Core 안에 있는 작은 Hardware Cache입니다.</p>
+<div class="hl"><pre><code class="language-text">           ┌─────────────── CPU Core ───────────────┐
+ VA ──→    │  TLB:  VPN → PFN + 권한 Flag            │
+           │   ├─ Hit  ─────────────────────────────┼──→ PA   (1ns 미만, Memory 접근 0회)
+           │   └─ Miss → Page Table Walker (Hardware)│
+           └──────────────┬─────────────────────────┘
+                          ▼
+                 Memory 의 Page Table 을 4 단계로 읽음 → 결과를 TLB 에 채움 → PA
+</code></pre></div>
+<table>
+<thead>
+<tr>
+<th></th>
+<th>내용</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>저장하는 것</td>
+<td>VPN → PFN, 그리고 PTE의 권한 Flag(R/W, U/S, NX)</td>
+</tr>
+<tr>
+<td>크기</td>
+<td>매우 작음. L1 TLB 수십 개(Data 64개 안팎), L2 TLB 1,000~2,000개 수준</td>
+</tr>
+<tr>
+<td>담당 범위</td>
+<td>Entry 64개 × 4KB = <strong>256KB</strong>, 2,048개 × 4KB = <strong>8MB</strong></td>
+</tr>
+<tr>
+<td>Miss 때</td>
+<td>x86-64는 <strong>Hardware</strong>(Page Walker)가 Page Table을 읽어 TLB를 채움. Kernel은 관여하지 않음</td>
+</tr>
+<tr>
+<td>위치</td>
+<td>Core마다 따로 있음</td>
+</tr>
+</tbody>
+</table>
+<p>수 GB의 Memory를 쓰는 프로그램에 비하면 TLB가 한 번에 기억하는 범위는 아주 작습니다. 그래서 <strong>접근 Pattern</strong>이 중요해집니다.</p>
+<p>자신의 CPU 정보는 다음 명령으로 일부 확인할 수 있습니다.</p>
+<div class="hl"><pre><code class="language-bash">lscpu<span class="w"> </span><span class="p">|</span><span class="w"> </span>grep<span class="w"> </span>-E<span class="w"> </span><span class="s2">&quot;Model name|Address sizes&quot;</span>
+</code></pre></div>
+<div class="hl"><pre><code class="language-text">Model name:                           Intel(R) Core(TM) i7-...
+Address sizes:                        39 bits physical, 48 bits virtual
+</code></pre></div>
+<p><code>48 bits virtual</code>이 L07의 48bit 주소입니다.</p>
+<h3>8-3. Animation: TLB Hit / Miss Simulator</h3>
+<p>Entry 4개짜리 작은 TLB(LRU 교체)로 동작을 확인합니다. Step 하나가 Memory 접근 한 번입니다.</p>
+<ol>
+<li><strong>지역성이 좋은 접근</strong>: 같은 Page들을 반복 접근합니다. 처음 몇 번만 Miss이고 이후 Hit가 이어지는 것을 봅니다.</li>
+<li><strong>Page를 넓게 오가는 접근</strong>: 접근할 때마다 다른 Page입니다. TLB가 계속 교체되고 Hit Rate가 0에 가깝습니다.</li>
+<li><strong>Context Switch</strong>: 중간에 다른 Process로 전환되면서 TLB가 비워집니다. 돌아온 뒤 다시 Miss가 나는 것을 확인합니다.</li>
+<li><strong>Huge Page (2MB)</strong>: 2번과 같은 주소들을 2MB Page로 Mapping한 경우입니다. 같은 접근인데 Hit Rate가 어떻게 달라지는지 비교합니다.</li>
+</ol>
+<p class="anim">🎬 <a href="animation.html#l3" style="color:inherit"><strong>C2-3 TLB Hit / Miss Simulator</strong></a> — animation.html 에서 직접 조작해 보세요</p>
+<h3>8-4. 접근 Pattern에 따른 차이 측정</h3>
+<p><a href="src/L08/tlb_stride.c">tlb_stride.c</a>는 <strong>같은 횟수(약 210만 회)</strong> 의 Memory 읽기를 두 가지 방식으로 수행합니다.</p>
+<div class="hl"><pre><code class="language-c"><span class="k">for</span><span class="w"> </span><span class="p">(</span><span class="n">i</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span><span class="w"> </span><span class="n">i</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="n">NPAGES</span><span class="p">;</span><span class="w"> </span><span class="n">i</span><span class="o">++</span><span class="p">)</span><span class="w"> </span><span class="n">sum</span><span class="w"> </span><span class="o">+=</span><span class="w"> </span><span class="n">p</span><span class="p">[</span><span class="n">i</span><span class="p">];</span><span class="w">           </span><span class="cm">/* dense : 연속 주소. 64 Pages 안에서만 */</span>
+<span class="k">for</span><span class="w"> </span><span class="p">(</span><span class="n">i</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span><span class="w"> </span><span class="n">i</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="n">NPAGES</span><span class="p">;</span><span class="w"> </span><span class="n">i</span><span class="o">++</span><span class="p">)</span><span class="w"> </span><span class="n">sum</span><span class="w"> </span><span class="o">+=</span><span class="w"> </span><span class="n">p</span><span class="p">[</span><span class="n">i</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">PAGE</span><span class="p">];</span><span class="w">    </span><span class="cm">/* sparse: 접근마다 다른 Page. 262,144 Pages */</span>
+</code></pre></div>
+<p>Page Fault의 영향을 없애기 위해 측정 전에 모든 Page를 미리 건드려 둡니다.</p>
+<div class="hl"><pre><code class="language-bash">./tlb_stride
+</code></pre></div>
+<div class="hl"><pre><code class="language-text">접근 횟수      : 2097152 회씩
+dense  (64 Pages)     :     0.8 ms
+sparse (262144 Pages) :    21.7 ms   (28.6 배)
+checksum 2097664
+</code></pre></div>
+<blockquote>
+<p><strong>❗ IMPORTANT</strong><br />
+이 차이가 전부 TLB 때문은 아닙니다. sparse 접근은 <strong>CPU Data Cache Miss</strong>도 함께 일으킵니다(접근마다 새 Cache Line). 또 dense 쪽은 Compiler가 SIMD 명령으로 최적화하기 쉽습니다. 이 실험이 보여 주는 것은 "접근 횟수가 같아도 <strong>몇 개의 Page를 오가는가</strong>에 따라 수십 배 차이가 난다"는 사실입니다. TLB만의 효과는 8-7에서 분리합니다.</p>
+</blockquote>
+<p>Native Linux(VM이 아닌 환경)에서는 Hardware Counter로 TLB Miss를 직접 셀 수 있습니다.</p>
+<div class="hl"><pre><code class="language-bash">perf<span class="w"> </span>stat<span class="w"> </span>-e<span class="w"> </span>dTLB-loads,dTLB-load-misses,page-faults<span class="w"> </span>./tlb_stride
+</code></pre></div>
+<div class="hl"><pre><code class="language-text">       2,358,113      dTLB-load-misses
+         262,210      page-faults
+</code></pre></div>
+<blockquote>
+<p><strong>⚠ WARNING</strong><br />
+VirtualBox Guest에서는 <code>dTLB-load-misses</code>가 <code>&lt;not supported&gt;</code>로 나옵니다(<a href="https://imguru-mooc.github.io/adv-sysprog/ch00/lecture.html">0.2 실습 환경 준비</a>에서 확인한 제약). 이 과정은 시간 측정을 기본으로 하고, Hardware Counter는 영상에서 Native 환경 화면으로 보여 줍니다.</p>
+</blockquote>
+<h3>8-5. TLB Miss ≠ Page Fault</h3>
+<p>혼동하기 쉬운 두 가지를 구분합니다.</p>
+<table>
+<thead>
+<tr>
+<th></th>
+<th>TLB Miss</th>
+<th>Page Fault</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>의미</td>
+<td>변환 결과가 <strong>TLB에</strong> 없다</td>
+<td>유효한 변환이 <strong>Page Table에</strong> 없다 (Present=0 또는 권한 위반)</td>
+</tr>
+<tr>
+<td>처리 주체</td>
+<td>CPU <strong>Hardware</strong> (Page Walker)</td>
+<td><strong>Kernel</strong> (Exception Handler)</td>
+</tr>
+<tr>
+<td>비용</td>
+<td>수십~수백 ns</td>
+<td>최소 수 µs (Minor), Disk I/O가 있으면 ms 단위 (Major)</td>
+</tr>
+<tr>
+<td>Kernel 진입</td>
+<td>없음</td>
+<td>있음 (L01의 Exception 경로)</td>
+</tr>
+<tr>
+<td>프로그램에 보이는가</td>
+<td>시간으로만</td>
+<td><code>getrusage</code>, <code>/proc/PID/stat</code>, <code>perf</code>의 page-faults로 셀 수 있음</td>
+</tr>
+</tbody>
+</table>
+<div class="hl"><pre><code class="language-text">Memory 접근
+   │
+   ├─ TLB Hit ──────────────────────────────────────────→ 접근 완료
+   │
+   └─ TLB Miss → Hardware 가 Page Table Walk
+                   ├─ PTE 유효 → TLB 에 채움 ────────────→ 접근 완료
+                   └─ PTE 없음 / 권한 위반 → Page Fault → Kernel (L09)
+</code></pre></div>
+<p>8-4에서 Page를 미리 건드려 둔 것은 측정 구간에 Page Fault(오른쪽 아래 경로)가 섞이지 않게 하기 위해서였습니다.</p>
+<h3>8-6. Context Switch와 TLB</h3>
+<p>TLB에 있는 <code>VPN 0x555555555 → PFN 0x12987e</code>는 <strong>Process A의</strong> 변환입니다. Process B도 같은 VPN을 쓰지만 다른 Frame을 가리킵니다. Process가 바뀌었는데 TLB가 그대로라면 B가 A의 Memory를 읽게 됩니다.</p>
+<table>
+<thead>
+<tr>
+<th>방법</th>
+<th>동작</th>
+<th>비용</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Flush</td>
+<td>CR3를 바꾸면 TLB 전체를 비운다</td>
+<td>전환 직후 한동안 모든 접근이 TLB Miss</td>
+</tr>
+<tr>
+<td><strong>PCID</strong> (Process Context ID)</td>
+<td>TLB Entry마다 12bit Tag를 붙여 주소 공간을 구분한다</td>
+<td>비우지 않아도 됨. 돌아왔을 때 Entry가 남아 있을 수 있음</td>
+</tr>
+<tr>
+<td>Global bit (PTE의 G)</td>
+<td>Kernel 영역의 변환은 모든 Process에서 같으므로 Flush에서 제외</td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<div class="hl"><pre><code class="language-bash">grep<span class="w"> </span>-o<span class="w"> </span>-w<span class="w"> </span>pcid<span class="w"> </span>/proc/cpuinfo<span class="w"> </span><span class="p">|</span><span class="w"> </span>head<span class="w"> </span>-n<span class="w"> </span><span class="m">1</span>
+</code></pre></div>
+<div class="hl"><pre><code class="language-text">pcid
+</code></pre></div>
+<p>이 Chapter의 관점에서 기억할 것은 세 가지입니다.</p>
+<ul>
+<li><strong>Thread 간 전환은 Process 간 전환보다 가볍습니다.</strong> 같은 Process의 Thread는 주소 공간(CR3)이 같아서 TLB를 비울 필요가 없습니다. 기존 과정에서 배운 "Thread가 Process보다 가볍다"의 Hardware적 이유 중 하나입니다.</li>
+<li><strong>Context Switch의 진짜 비용은 Register 저장이 아니라 그 이후의 Cache/TLB Miss입니다.</strong> Chapter 4의 Lock Contention, Chapter 5의 "Thread를 많이 만드는 대신 epoll"로 이어지는 배경입니다.</li>
+<li><code>munmap</code>, <code>mprotect</code>처럼 Mapping을 바꾸면 Kernel은 <strong>다른 Core의 TLB에 남은 옛 변환도 지워야</strong> 합니다(TLB Shootdown, Core 간 Interrupt 사용). Thread가 많은 프로그램에서 <code>mmap</code>/<code>munmap</code>을 자주 반복하면 느려지는 이유입니다.</li>
+</ul>
+<h3>8-7. Huge Page로 TLB 범위 넓히기</h3>
+<p>TLB Entry 수를 늘릴 수 없다면 <strong>Entry 하나가 담당하는 범위</strong>를 키우면 됩니다. L07의 표에서 PMD Entry 하나가 2MB를 담당했습니다. PMD Entry가 PTE Table 대신 <strong>2MB짜리 Frame을 직접</strong> 가리키게 하면 그것이 Huge Page입니다.</p>
+<table>
+<thead>
+<tr>
+<th></th>
+<th>4KB Page</th>
+<th>2MB Huge Page</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>512MB에 필요한 TLB Entry</td>
+<td>131,072개</td>
+<td><strong>256개</strong></td>
+</tr>
+<tr>
+<td>Page Table Walk</td>
+<td>4단계</td>
+<td>3단계</td>
+</tr>
+<tr>
+<td>Page Table 크기</td>
+<td>약 1MB</td>
+<td>약 4KB</td>
+</tr>
+<tr>
+<td>단점</td>
+<td></td>
+<td>연속된 2MB Physical Memory 필요, 1Byte만 써도 2MB 소비</td>
+</tr>
+</tbody>
+</table>
+<p>Linux의 <strong>THP(Transparent Huge Page)</strong> 는 프로그램 수정 없이(또는 <code>madvise</code> 한 줄로) Kernel이 알아서 Huge Page를 써 주는 기능입니다.</p>
+<div class="hl"><pre><code class="language-bash">cat<span class="w"> </span>/sys/kernel/mm/transparent_hugepage/enabled
+</code></pre></div>
+<div class="hl"><pre><code class="language-text">always [madvise] never
+</code></pre></div>
+<p><code>[madvise]</code>이면 프로그램이 <code>madvise(addr, len, MADV_HUGEPAGE)</code>로 요청한 영역에만 적용됩니다. <a href="src/L08/thp_compare.c">thp_compare.c</a>는 512MB를 Page 단위로 <strong>흩어진 순서</strong>로 방문합니다. 4KB와 2MB에서 접근 주소와 순서가 완전히 같으므로 Data Cache의 조건은 같고, <strong>차이는 주소 변환 비용</strong>에서 나옵니다.</p>
+<div class="hl"><pre><code class="language-bash">./thp_compare
+./thp_compare<span class="w"> </span>huge
+</code></pre></div>
+<div class="hl"><pre><code class="language-text">Mode           : 4KB Page
+AnonHugePages  : 0 kB
+필요한 TLB Entry: 131072 개
+흩어진 접근     :    30.1 ms   (checksum 2097152)
+</code></pre></div>
+<div class="hl"><pre><code class="language-text">Mode           : 2MB Huge Page (MADV_HUGEPAGE)
+AnonHugePages  : 524288 kB
+필요한 TLB Entry: 256 개
+흩어진 접근     :    19.3 ms   (checksum 2097152)
+</code></pre></div>
+<blockquote>
+<p><strong>📌 NOTE</strong><br />
+숫자는 CPU와 VM 설정에 따라 크게 달라집니다. VirtualBox처럼 중첩 Paging(Guest Page Table + Host Page Table)을 쓰는 환경에서는 TLB Miss 한 번의 비용이 더 커서 차이가 더 크게 나올 수 있습니다. <code>AnonHugePages</code>가 0이 아닌지와, 어느 쪽이 빠른지만 확인하세요.</p>
+</blockquote>
+<p><code>AnonHugePages: 524288 kB</code>는 <code>/proc/self/smaps</code>에서 읽은 값으로, 512MB 전체가 2MB Page 256개로 Mapping되었음을 뜻합니다.</p>
+<table>
+<thead>
+<tr>
+<th>실제 활용</th>
+<th>내용</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Database (PostgreSQL, Oracle), JVM, DPDK</td>
+<td>수십 GB의 Buffer를 Huge Page로 설정. TLB Miss와 Page Table Memory 절감</td>
+</tr>
+<tr>
+<td>주의</td>
+<td>THP <code>always</code>는 Memory 사용량 증가와 지연 시간 튐(2MB를 0으로 채우고 연속 공간을 만드는 비용)을 일으킬 수 있어, Redis와 MongoDB는 끄는 것을 권장</td>
+</tr>
+</tbody>
+</table>
+<h3 class="guide">정리</h3><ul>
+<li><strong>TLB</strong>는 VPN → PFN 변환 결과를 기억하는 CPU 안의 작은 Cache입니다. Hit면 Memory 접근 없이 변환이 끝나고, Miss면 Hardware가 Page Table을 4단계로 읽습니다.</li>
+<li>TLB가 담당하는 범위는 수백 KB ~ 수 MB에 불과합니다. <strong>접근 횟수가 같아도 오가는 Page 수에 따라</strong> 성능이 크게 달라집니다.</li>
+<li><strong>TLB Miss는 Hardware가, Page Fault는 Kernel이</strong> 처리합니다. 전혀 다른 사건입니다.</li>
+<li>Process가 바뀌면 TLB의 내용이 무효가 됩니다(Flush 또는 PCID로 구분). Thread 간 전환은 주소 공간이 같아 이 비용이 없습니다.</li>
+<li><strong>Huge Page</strong>는 TLB Entry 하나의 담당 범위를 4KB에서 2MB로 키웁니다. THP와 <code>madvise(MADV_HUGEPAGE)</code>로 적용할 수 있습니다.</li>
+</ul>
+<h3>생각해 볼 질문</h3><ol>
+<li>같은 Page 안의 서로 다른 두 주소에 접근할 때 TLB Entry는 몇 개 필요한가요? 이유는?</li>
+<li>TLB Miss가 발생했을 때 x86-64에서 Kernel 코드가 실행되나요?</li>
+<li><code>tlb_stride</code>의 28배 차이를 "전부 TLB 때문"이라고 말할 수 없는 이유는 무엇인가요?</li>
+<li>같은 Process의 Thread 간 Context Switch가 Process 간 Switch보다 TLB 관점에서 유리한 이유는?</li>
+<li>64 Entry TLB로 4KB Page를 쓸 때와 2MB Page를 쓸 때 담당할 수 있는 범위를 각각 계산해 보세요.</li>
+<li>(실습) <code>thp_compare.c</code>의 <code>7919UL</code>을 <code>1UL</code>로 바꾸면(순차 방문) 4KB와 2MB의 차이가 어떻게 달라지나요? 이유를 생각해 보세요.</li>
+</ol>
+<h3>오류 해결</h3><table>
+<thead>
+<tr>
+<th>증상</th>
+<th>원인</th>
+<th>해결</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>./thp_compare huge</code>의 <code>AnonHugePages</code>가 0</td>
+<td>THP가 <code>never</code>이거나 연속된 Memory 부족</td>
+<td><code>echo madvise \| sudo tee /sys/kernel/mm/transparent_hugepage/enabled</code>, VM 재부팅 직후에 다시 시도</td>
+</tr>
+<tr>
+<td>4KB Mode인데 <code>AnonHugePages</code>가 0이 아님</td>
+<td>THP가 <code>always</code></td>
+<td>Source의 <code>MADV_NOHUGEPAGE</code>가 적용되는지 확인. 결과 해석에는 문제없음</td>
+</tr>
+<tr>
+<td><code>mmap: Cannot allocate memory</code> (<code>tlb_stride</code>)</td>
+<td>VM Memory 부족 (1GB 필요)</td>
+<td>VM Memory를 4GB로 설정. 또는 <code>NPAGES</code>를 <code>128UL * 1024</code>로 줄임</td>
+</tr>
+<tr>
+<td>두 Mode의 시간이 거의 같음</td>
+<td>VM, CPU 특성</td>
+<td>여러 번 실행해 평균 비교. <code>ROUNDS</code>를 64로 늘림</td>
+</tr>
+<tr>
+<td><code>perf stat</code>에서 <code>&lt;not supported&gt;</code></td>
+<td>VirtualBox의 HW Counter 미지원</td>
+<td>정상. 시간 측정 결과를 사용</td>
+</tr>
+</tbody>
+</table>
+<h4 id="b8-1" class="fill">✏️ 빈칸 채우기 8-1</h4>
+<p>같은 횟수의 Memory 접근을 "몇 개의 Page 를 오가는가" 만 바꿔 비교하는 측정 구간입니다. <span style="color:var(--ink-soft)">(<code>src/L08/tlb_stride.c</code> 36~49행)</span></p>
+<div class="hl"><pre><code class="language-c"><span class="w">    </span><span class="n">madvise</span><span class="p">((</span><span class="kt">void</span><span class="w"> </span><span class="o">*</span><span class="p">)</span><span class="n">p</span><span class="p">,</span><span class="w"> </span><span class="n">NPAGES</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">PAGE</span><span class="p">,</span><span class="w"> </span><span class="n"><input class="blank" data-q="b8-1" data-i="0" spellcheck="false" autocomplete="off"></span><span class="p">);</span>
+
+<span class="w">    </span><span class="k">for</span><span class="w"> </span><span class="p">(</span><span class="n">i</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span><span class="w"> </span><span class="n">i</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="n">NPAGES</span><span class="p">;</span><span class="w"> </span><span class="n">i</span><span class="o">++</span><span class="p">)</span><span class="w">            </span><span class="cm">/* 준비: 모든 Page 를 미리 Physical Memory 에 올린다 */</span>
+<span class="w">        </span><span class="n">p</span><span class="p">[</span><span class="n">i</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">PAGE</span><span class="p">]</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">1</span><span class="p">;</span>
+
+<span class="w">    </span><span class="n">t0</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">now</span><span class="p">();</span>
+<span class="w">    </span><span class="k">for</span><span class="w"> </span><span class="p">(</span><span class="n">r</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span><span class="w"> </span><span class="n">r</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="n">ROUNDS</span><span class="p">;</span><span class="w"> </span><span class="n">r</span><span class="o">++</span><span class="p">)</span>
+<span class="w">        </span><span class="k">for</span><span class="w"> </span><span class="p">(</span><span class="n">i</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span><span class="w"> </span><span class="n">i</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="n">NPAGES</span><span class="p">;</span><span class="w"> </span><span class="n">i</span><span class="o">++</span><span class="p">)</span><span class="w">        </span><span class="cm">/* dense: 앞쪽 64 Pages 안에서만 접근 */</span>
+<span class="w">            </span><span class="n">sum</span><span class="w"> </span><span class="o">+=</span><span class="w"> </span><span class="n"><input class="blank" data-q="b8-1" data-i="1" spellcheck="false" autocomplete="off"></span><span class="p">;</span>
+<span class="w">    </span><span class="n">t1</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">now</span><span class="p">();</span>
+<span class="w">    </span><span class="k">for</span><span class="w"> </span><span class="p">(</span><span class="n">r</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span><span class="w"> </span><span class="n">r</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="n">ROUNDS</span><span class="p">;</span><span class="w"> </span><span class="n">r</span><span class="o">++</span><span class="p">)</span>
+<span class="w">        </span><span class="k">for</span><span class="w"> </span><span class="p">(</span><span class="n">i</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span><span class="w"> </span><span class="n">i</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="n">NPAGES</span><span class="p">;</span><span class="w"> </span><span class="n">i</span><span class="o">++</span><span class="p">)</span><span class="w">        </span><span class="cm">/* sparse: 접근마다 다른 Page */</span>
+<span class="w">            </span><span class="n">sum</span><span class="w"> </span><span class="o">+=</span><span class="w"> </span><span class="n">p</span><span class="p">[</span><span class="n">i</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n"><input class="blank" data-q="b8-1" data-i="2" spellcheck="false" autocomplete="off"></span><span class="p">];</span>
+<span class="w">    </span><span class="n">t2</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">now</span><span class="p">();</span>
+</code></pre></div>
+<div class="qbar"><button class="btn check" data-q="b8-1">확인</button><button class="btn clear" data-q="b8-1">지우기</button><span class="qres" id="res-b8-1"></span></div>
+<details>
+<summary class="lock">🔒 정답 보기 8-1</summary>
+<div class="hl"><pre><code class="language-c"><span class="w">    </span><span class="n">madvise</span><span class="p">((</span><span class="kt">void</span><span class="w"> </span><span class="o">*</span><span class="p">)</span><span class="n">p</span><span class="p">,</span><span class="w"> </span><span class="n">NPAGES</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">PAGE</span><span class="p">,</span><span class="w"> </span><span class="n">MADV_NOHUGEPAGE</span><span class="p">);</span>
+
+<span class="w">    </span><span class="k">for</span><span class="w"> </span><span class="p">(</span><span class="n">i</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span><span class="w"> </span><span class="n">i</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="n">NPAGES</span><span class="p">;</span><span class="w"> </span><span class="n">i</span><span class="o">++</span><span class="p">)</span><span class="w">            </span><span class="cm">/* 준비: 모든 Page 를 미리 Physical Memory 에 올린다 */</span>
+<span class="w">        </span><span class="n">p</span><span class="p">[</span><span class="n">i</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">PAGE</span><span class="p">]</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">1</span><span class="p">;</span>
+
+<span class="w">    </span><span class="n">t0</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">now</span><span class="p">();</span>
+<span class="w">    </span><span class="k">for</span><span class="w"> </span><span class="p">(</span><span class="n">r</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span><span class="w"> </span><span class="n">r</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="n">ROUNDS</span><span class="p">;</span><span class="w"> </span><span class="n">r</span><span class="o">++</span><span class="p">)</span>
+<span class="w">        </span><span class="k">for</span><span class="w"> </span><span class="p">(</span><span class="n">i</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span><span class="w"> </span><span class="n">i</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="n">NPAGES</span><span class="p">;</span><span class="w"> </span><span class="n">i</span><span class="o">++</span><span class="p">)</span><span class="w">        </span><span class="cm">/* dense: 앞쪽 64 Pages 안에서만 접근 */</span>
+<span class="w">            </span><span class="n">sum</span><span class="w"> </span><span class="o">+=</span><span class="w"> </span><span class="n">p</span><span class="p">[</span><span class="n">i</span><span class="p">];</span>
+<span class="w">    </span><span class="n">t1</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">now</span><span class="p">();</span>
+<span class="w">    </span><span class="k">for</span><span class="w"> </span><span class="p">(</span><span class="n">r</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span><span class="w"> </span><span class="n">r</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="n">ROUNDS</span><span class="p">;</span><span class="w"> </span><span class="n">r</span><span class="o">++</span><span class="p">)</span>
+<span class="w">        </span><span class="k">for</span><span class="w"> </span><span class="p">(</span><span class="n">i</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span><span class="w"> </span><span class="n">i</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="n">NPAGES</span><span class="p">;</span><span class="w"> </span><span class="n">i</span><span class="o">++</span><span class="p">)</span><span class="w">        </span><span class="cm">/* sparse: 접근마다 다른 Page */</span>
+<span class="w">            </span><span class="n">sum</span><span class="w"> </span><span class="o">+=</span><span class="w"> </span><span class="n">p</span><span class="p">[</span><span class="n">i</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">PAGE</span><span class="p">];</span>
+<span class="w">    </span><span class="n">t2</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">now</span><span class="p">();</span>
+</code></pre></div>
+<p>Huge Page 가 섞이면 Page 수 비교가 의미 없어지므로 <code>MADV_NOHUGEPAGE</code> 로 막습니다. dense 는 <code>p[i]</code> 로 연속 주소를 읽어 4096번에 한 번만 새 Page 를 만나고(TLB Hit 대부분), sparse 는 <code>p[i * PAGE]</code> 로 접근마다 다른 Page 를 만나 TLB Miss 와 Page Walk 가 일어납니다. 접근 횟수는 같은데 수십 배 차이가 납니다.</p>
+<p><strong>빌드와 실행</strong></p><div class="hl"><pre><code class="language-bash"><span class="nb">cd</span><span class="w"> </span>~/lsp2/ch02/src/L08
+make<span class="w"> </span>tlb_stride<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span>./tlb_stride
+perf<span class="w"> </span>stat<span class="w"> </span>-e<span class="w"> </span>dTLB-load-misses<span class="w"> </span>./tlb_stride<span class="w">   </span><span class="c1"># Native Linux 에서</span>
+</code></pre></div>
+</details>
+
+<h4 id="p8-2" class="fill">✏️ 괄호 넣기 8-2</h4>
+<ol>
+<li>TLB 가 없다면 4-Level Paging 에서 Memory 접근 한 번에 Page Table 을 <input class="blank pb" data-q="p8-2" data-i="0" spellcheck="false" autocomplete="off"> 번 더 읽어야 한다.</li>
+<li>TLB 가 효과적인 이유는 방금 접근한 Page 를 곧 다시 접근하는 <input class="blank pb" data-q="p8-2" data-i="1" spellcheck="false" autocomplete="off"> 때문이다.</li>
+<li>2MB 크기의 Page 를 쓰면 TLB Entry 하나가 덮는 범위가 512배 넓어진다. 이 Page 를 <input class="blank pb" data-q="p8-2" data-i="2" spellcheck="false" autocomplete="off"> 라고 한다.</li>
+<li>Context Switch 때 TLB 전체를 비우지 않도록 Entry 에 주소 공간 번호를 붙이는 기능은 <input class="blank pb" data-q="p8-2" data-i="3" spellcheck="false" autocomplete="off"> 이다.</li>
+</ol>
+<div class="qbar"><button class="btn check" data-q="p8-2">확인</button><button class="btn clear" data-q="p8-2">지우기</button><span class="qres" id="res-p8-2"></span></div>
+<details>
+<summary class="lock">🔒 정답 보기 8-2</summary>
+<ol><li>4</li><li>Locality</li><li>Huge Page</li><li>PCID</li></ol>
+<p>TLB Miss 이면 Hardware Page Walker 가 PGD→PUD→PMD→PTE 4번을 읽습니다. 같은 Page 안의 4096개 주소가 같은 변환 결과를 쓰므로(Locality) Hit 률이 높습니다. Huge Page(THP)는 TLB 범위를 넓히고, PCID 는 Process 전환 후에도 TLB 를 살려 둡니다(🎬 C2-3).</p>
+</details>
+
+<blockquote><p><strong>다음</strong> — 8-5의 그림에서 오른쪽 아래 경로를 남겨 두었습니다. "PTE 없음 / 권한 위반 → Page Fault → Kernel". L06의 Demand Paging, L07의 COW, Stack 자동 확장이 모두 이 경로에서 처리됩니다.
+<a href="#sec4">L09. Page Fault 내부 동작</a></p></blockquote>
+</section>
+<section id="sec4" class="lesson"><header class="sec-head"><span class="period">Lecture 09</span><h1>Page Fault 내부 동작</h1><span class="time">영상 18분</span></header>
+<p>Page Fault는 오류가 아닙니다. Linux가 Memory를 "필요한 순간에, 필요한 만큼만" 주기 위해 일부러 사용하는 정상적인 동작입니다.</p>
+<p class="goal-title"><strong>학습 목표</strong></p><ul>
+<li>Page Fault가 발생하는 조건과 Kernel Handler의 판단 흐름을 설명할 수 있다.</li>
+<li>Minor Fault와 Major Fault의 차이를 설명하고 직접 발생시켜 측정할 수 있다.</li>
+<li>Anonymous Page의 첫 접근, Zero Page, COW, Stack 확장이 모두 Page Fault로 처리됨을 설명할 수 있다.</li>
+<li>잘못된 접근이 <code>SIGSEGV</code>가 되는 경로와 <code>SEGV_MAPERR</code> / <code>SEGV_ACCERR</code>의 차이를 설명할 수 있다.</li>
+<li>프로그램의 Page Fault 횟수를 도구로 측정할 수 있다.</li>
+</ul>
+<p class="anim">🎬 <a href="animation.html#l4" style="color:inherit"><strong>C2-4 Page Fault Walkthrough</strong></a> — animation.html 에서 단계별로 조작</p>
+<h3>준비</h3><div class="hl"><pre><code class="language-bash"><span class="nb">cd</span><span class="w"> </span>~/lsp2/ch02/src/L09
+make
+</code></pre></div>
+<h3>9-1. Page Fault는 언제 일어나는가</h3>
+<p>MMU가 주소를 변환하다가 <strong>그대로 진행할 수 없는 PTE</strong>를 만나면 Exception(<code>#PF</code>, 14번)을 일으킵니다.</p>
+<table>
+<thead>
+<tr>
+<th>MMU가 본 것</th>
+<th>예</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Present = 0 (또는 상위 Table이 아예 없음)</td>
+<td><code>malloc</code> 후 처음 접근, 아직 읽어 오지 않은 File Page</td>
+</tr>
+<tr>
+<td>쓰기인데 R/W = 0</td>
+<td>COW, <code>.rodata</code>에 쓰기</td>
+</tr>
+<tr>
+<td>Ring 3인데 U/S = 0</td>
+<td>User 프로그램이 Kernel 주소에 접근</td>
+</tr>
+<tr>
+<td>실행인데 NX = 1</td>
+<td>Stack이나 Heap의 Data를 실행하려는 시도</td>
+</tr>
+</tbody>
+</table>
+<p>CPU는 두 가지 정보를 남기고 Kernel의 Page Fault Handler로 들어갑니다(L01의 "Exception" 경로).</p>
+<ul>
+<li><strong>CR2 Register</strong>: Fault를 일으킨 Virtual Address</li>
+<li><strong>Error Code</strong>: 읽기/쓰기, User/Kernel Mode, Present 여부, 명령어 Fetch 여부</li>
+</ul>
+<p>중요한 것은 그다음입니다. Kernel이 문제를 해결하고 돌아오면 CPU는 <strong>Fault를 일으킨 바로 그 명령을 처음부터 다시 실행</strong>합니다. 프로그램은 아무 일도 없었던 것처럼 계속됩니다.</p>
+<h3>9-2. 처음 건드릴 때마다 한 번씩</h3>
+<p><a href="src/L09/fault_count.c">fault_count.c</a>는 10,000 Page를 <code>mmap</code>하고, 모든 Page에 두 번씩 씁니다. 구간마다 <code>getrusage</code>로 Fault 횟수를 읽습니다.</p>
+<div class="hl"><pre><code class="language-bash">./fault_count
+</code></pre></div>
+<div class="hl"><pre><code class="language-text">Page 수                 : 10000
+mmap() 호출             : minor +0
+첫 번째 쓰기 (10000 회) : minor +10000  major +0
+두 번째 쓰기 (10000 회) : minor +0  major +0
+</code></pre></div>
+<ul>
+<li><code>mmap()</code> 자체는 Fault를 일으키지 않습니다. VMA만 만들었기 때문입니다(L06).</li>
+<li>첫 번째 쓰기에서 <strong>정확히 Page 수만큼</strong> Fault가 발생했습니다. Page마다 한 번씩 Kernel에 들어가 Frame을 받아 온 것입니다.</li>
+<li>두 번째 쓰기에서는 0입니다. PTE가 이미 있습니다.</li>
+</ul>
+<p>10,000번의 Kernel 진입은 공짜가 아닙니다. 큰 Memory를 할당한 직후 첫 번째 순회가 두 번째보다 눈에 띄게 느린 이유이고, Latency가 중요한 프로그램이 시작할 때 Memory를 미리 건드려 두는(pre-fault) 이유입니다. <code>mmap</code>의 <code>MAP_POPULATE</code> Flag가 같은 일을 한 번의 System Call로 해 줍니다.</p>
+<h3>9-3. Kernel Handler의 판단 흐름</h3>
+<p>Handler가 하는 일은 한 문장으로 요약됩니다: <strong>"이 주소에 대해 VMA(약속)는 뭐라고 하는가?"</strong></p>
+<div class="hl"><pre><code class="language-text">#PF 발생 (CR2 = 주소, Error Code)                       arch/x86/mm/fault.c : do_user_addr_fault()
+  │
+  ├─ 주소를 포함하는 VMA 를 찾는다
+  │     ├─ 없음 ─┬─ 바로 위가 [stack] VMA 이고 ulimit 이내 → Stack VMA 를 확장하고 계속
+  │     │        └─ 그 외 ────────────────────────────→ SIGSEGV (SEGV_MAPERR)
+  │     └─ 있음
+  │
+  ├─ 접근 종류가 VMA 권한에 맞는가  (쓰기인데 VMA 가 r-- 등)
+  │     └─ 아니오 ───────────────────────────────────→ SIGSEGV (SEGV_ACCERR)
+  │
+  └─ 정당한 접근이다 → handle_mm_fault()                 mm/memory.c
+        ├─ Anonymous, 첫 읽기   → Zero Page 를 읽기 전용으로 Mapping              Minor
+        ├─ Anonymous, 첫 쓰기   → 새 Frame 할당, 0 으로 채움                       Minor
+        ├─ File Mapping        → Page Cache 에 있으면 그것을 Mapping              Minor
+        │                        없으면 Disk 에서 읽어 온 뒤 Mapping              Major
+        ├─ 쓰기 + PTE R/W=0 + VMA 는 rw-  → COW: 새 Frame 에 복사                  Minor
+        └─ Swap 된 Page        → Swap 에서 읽어 옴                                Major
+  │
+  └─ PTE 갱신 → Exception 에서 복귀 → 같은 명령 재실행
+</code></pre></div>
+<p>L07에서 "VMA는 약속, PTE는 현재 상태"라고 했습니다. <strong>Page Fault Handler는 현재 상태를 약속에 맞게 고치는 곳</strong>입니다. 고칠 수 있으면 조용히 고치고, 약속 자체에 없는 접근이면 <code>SIGSEGV</code>를 보냅니다.</p>
+<h3>9-4. Animation: 네 가지 Page Fault</h3>
+<p>Scenario를 바꿔 가며 Handler의 판단이 어떻게 갈리는지 비교합니다.</p>
+<ol>
+<li><strong>Minor (Anonymous 첫 쓰기)</strong>: Frame 할당 → 0으로 채움 → PTE 기록 → 명령 재실행.</li>
+<li><strong>Major (Cache에 없는 File Page)</strong>: Disk I/O를 기다리는 동안 Process가 Sleep 상태가 되는 단계를 확인합니다.</li>
+<li><strong>COW (fork 후 쓰기)</strong>: PTE는 있는데(Present=1) R/W=0이어서 발생합니다. VMA 권한과 비교하는 단계에 주목합니다.</li>
+<li><strong>Invalid (잘못된 주소)</strong>: VMA를 찾지 못해 <code>SIGSEGV</code>로 끝납니다.</li>
+</ol>
+<p class="anim">🎬 <a href="animation.html#l4" style="color:inherit"><strong>C2-4 Page Fault Walkthrough</strong></a> — animation.html 에서 직접 조작해 보세요</p>
+<h3>9-5. 읽기만 하면 Memory가 늘지 않는다: Zero Page</h3>
+<p><a href="src/L09/zero_page.c">zero_page.c</a>는 256MB를 <code>mmap</code>하고, 먼저 모든 Page를 <strong>읽기만</strong> 한 뒤, 다음에 <strong>씁니다.</strong></p>
+<div class="hl"><pre><code class="language-bash">./zero_page
+</code></pre></div>
+<div class="hl"><pre><code class="language-text">mmap(256MB) 직후         RSS    1420 kB
+모든 Page 읽기         RSS    1744 kB   minor +65548   (sum=0)
+모든 Page 쓰기         RSS  263888 kB   minor +65536
+</code></pre></div>
+<ul>
+<li>읽기에서 Fault가 65,536번(= 256MB ÷ 4KB) 발생했지만 <strong>RSS는 거의 늘지 않았습니다.</strong></li>
+<li>Kernel은 "어차피 0만 보일 Page"에 Frame을 새로 주지 않습니다. System에 하나뿐인 <strong>Zero Page</strong>(0으로 채워진 Frame)를 65,536개의 PTE가 <strong>읽기 전용으로 함께</strong> 가리키게 합니다.</li>
+<li>쓰기에서 Fault가 <strong>또</strong> 65,536번 발생했습니다. 이번에는 R/W=0인 PTE에 쓰려 했기 때문이고, Kernel은 그제서야 Page마다 진짜 Frame을 줍니다. COW와 같은 원리입니다.</li>
+</ul>
+<p><code>calloc</code>으로 큰 Memory를 받아도 RSS가 바로 늘지 않는 이유, Sparse한(대부분 0인) 큰 배열이 생각보다 Memory를 적게 쓰는 이유입니다.</p>
+<h3>9-6. Minor Fault와 Major Fault</h3>
+<table>
+<thead>
+<tr>
+<th></th>
+<th>Minor Fault</th>
+<th>Major Fault</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>조건</td>
+<td>필요한 내용이 이미 Memory에 있거나, 새로 만들면 됨</td>
+<td><strong>Disk I/O</strong>가 필요함</td>
+</tr>
+<tr>
+<td>예</td>
+<td>Anonymous 첫 접근, COW, Page Cache에 있는 File Page</td>
+<td>Page Cache에 없는 File Page, Swap된 Page</td>
+</tr>
+<tr>
+<td>비용</td>
+<td>수 µs</td>
+<td>수백 µs ~ 수십 ms</td>
+</tr>
+<tr>
+<td>Process 상태</td>
+<td>계속 실행</td>
+<td>I/O가 끝날 때까지 <strong>Sleep</strong> (<code>D</code> state)</td>
+</tr>
+</tbody>
+</table>
+<p><a href="src/L09/major_fault.c">major_fault.c</a>는 128MB File을 <code>mmap</code>해 Page마다 1Byte씩 읽습니다.</p>
+<blockquote>
+<p><strong>❗ IMPORTANT</strong><br />
+File은 반드시 Home Directory 아래(현재 <code>lab</code> Directory)에 만드세요. Ubuntu 26.04의 <code>/tmp</code>는 Memory 기반 File System(tmpfs)이어서 Disk I/O가 발생하지 않습니다.</p>
+</blockquote>
+<div class="hl"><pre><code class="language-bash">./major_fault<span class="w"> </span>make
+sync<span class="p">;</span><span class="w"> </span><span class="nb">echo</span><span class="w"> </span><span class="m">3</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>sudo<span class="w"> </span>tee<span class="w"> </span>/proc/sys/vm/drop_caches
+./major_fault
+./major_fault
+</code></pre></div>
+<div class="hl"><pre><code class="language-text">big.dat (128 MB) 생성
+3
+minor +98   major +421   312.6 ms   (sum=3932160)
+minor +145   major +0   1.0 ms   (sum=3932160)
+</code></pre></div>
+<p><code>drop_caches</code>는 Kernel이 Memory에 보관 중인 File 내용(Page Cache)을 비웁니다.</p>
+<ul>
+<li><strong>첫 번째 실행</strong>: File 내용이 Memory에 없습니다. Fault가 나면 Disk에서 읽어 와야 합니다 → <strong>Major</strong>, 수백 ms.</li>
+<li><strong>두 번째 실행</strong>: 방금 읽은 내용이 Page Cache에 남아 있습니다. PTE만 연결하면 됩니다 → <strong>Minor</strong>, 1ms.</li>
+</ul>
+<p>같은 프로그램, 같은 File인데 <strong>300배</strong> 차이입니다. "처음 실행할 때만 느린 프로그램"의 정체입니다.</p>
+<blockquote>
+<p><strong>📌 NOTE</strong><br />
+32,768 Page를 읽었는데 Fault 횟수가 수백 번뿐입니다. Kernel은 Fault가 나면 그 Page만이 아니라 <strong>주변 Page까지 한꺼번에</strong> 처리합니다. Disk에서 읽을 때는 Readahead(연속된 Block을 미리 읽음), 이미 Cache에 있을 때는 Fault-around(주변 16개 Page의 PTE를 함께 채움)입니다. 정확한 횟수는 Kernel Version과 File System에 따라 다릅니다. Page Cache는 Chapter 3의 주제입니다.</p>
+</blockquote>
+<h3>9-7. COW Fault 세어 보기</h3>
+<p>L07에서 PFN으로 확인한 COW를 이번에는 Fault 횟수로 확인합니다. <a href="src/L09/cow_fault.c">cow_fault.c</a>는 Parent가 10,000 Page를 채운 뒤 <code>fork</code>하고, Child가 전부 읽은 다음 10%만 씁니다.</p>
+<div class="hl"><pre><code class="language-bash">./cow_fault
+</code></pre></div>
+<div class="hl"><pre><code class="language-text">[child] 10000 Pages 읽기        : minor +0
+[child] 1000 Pages 쓰기         : minor +1000   &lt;- 쓴 Page 만 복사
+[parent] p[0] = &#39;P&#39;  (Child 의 쓰기는 Parent 에 보이지 않는다)
+</code></pre></div>
+<ul>
+<li>읽기는 Fault가 0입니다. <code>fork</code>가 Page Table을 복사해 주었으므로 PTE가 이미 있습니다.</li>
+<li>쓰기는 <strong>쓴 Page 수만큼만</strong> Fault가 발생합니다. 40MB 중 4MB만 복사되었습니다.</li>
+</ul>
+<blockquote>
+<p><strong>💡 TIP</strong><br />
+Redis가 <code>fork</code>로 Snapshot을 저장하는 방식이 이것입니다. Child는 <code>fork</code> 시점의 Memory를 그대로 보면서 File로 쓰고, Parent는 계속 요청을 처리합니다. Parent가 수정한 Page만 복사되므로 수십 GB의 Data도 순간적으로 Snapshot을 뜰 수 있습니다. 반대로 저장 중에 쓰기가 몰리면 COW로 Memory 사용량이 급증합니다.</p>
+</blockquote>
+<h3>9-8. 잘못된 접근: SIGSEGV의 두 종류</h3>
+<p>Handler가 "약속에 없는 접근"이라고 판단하면 <code>SIGSEGV</code>를 보냅니다. <a href="src/L09/segv_info.c">segv_info.c</a>는 <code>SA_SIGINFO</code> Handler로 Kernel이 알려 주는 정보를 출력합니다.</p>
+<div class="hl"><pre><code class="language-bash">./segv_info<span class="w"> </span>null
+./segv_info<span class="w"> </span>ro
+</code></pre></div>
+<div class="hl"><pre><code class="language-text">Mapping 이 없는 주소 0x10 에 씁니다
+SIGSEGV  si_addr=0x10  si_code=1 (SEGV_MAPERR: 그 주소를 포함하는 VMA 가 없음)
+</code></pre></div>
+<div class="hl"><pre><code class="language-text">읽기 전용 영역 0x559cb498d130 에 씁니다
+SIGSEGV  si_addr=0x559cb498d130  si_code=2 (SEGV_ACCERR: VMA 는 있지만 권한이 없음)
+</code></pre></div>
+<table>
+<thead>
+<tr>
+<th>si_code</th>
+<th>의미</th>
+<th>흔한 원인</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>SEGV_MAPERR</code></td>
+<td>그 주소를 포함하는 VMA가 없다</td>
+<td>NULL Pointer, 해제된 <code>mmap</code> 영역, 쓰레기 Pointer</td>
+</tr>
+<tr>
+<td><code>SEGV_ACCERR</code></td>
+<td>VMA는 있지만 권한이 맞지 않다</td>
+<td>문자열 Literal 수정, <code>const</code> 변수에 쓰기, RELRO된 GOT에 쓰기</td>
+</tr>
+</tbody>
+</table>
+<p><code>si_addr</code>는 CR2의 값입니다. <code>si_addr</code>가 <code>0x10</code>처럼 작은 값이면 "NULL인 구조체 포인터의 멤버에 접근"(<code>p-&gt;field</code>, Offset 0x10)했을 가능성이 높습니다. Core Dump 분석(Chapter 7)에서 가장 먼저 보는 정보입니다.</p>
+<blockquote>
+<p><strong>⚠ WARNING</strong><br />
+SIGSEGV Handler에서 그냥 <code>return</code>하면 <strong>같은 명령이 다시 실행</strong>되어 같은 Fault가 무한히 반복됩니다(9-1의 "명령 재실행"). 그래서 이 예제는 Handler 안에서 <code>_exit</code>합니다. Handler 안에서는 <code>printf</code>가 아니라 <code>write</code>를 쓴 것도 확인하세요(기존 과정의 Reentrant 함수).</p>
+</blockquote>
+<h3>9-9. 도구로 Page Fault 측정하기</h3>
+<p>Source를 고치지 않고 Fault 횟수를 보는 방법입니다.</p>
+<div class="hl"><pre><code class="language-bash">/usr/bin/time<span class="w"> </span>-v<span class="w"> </span>./fault_count<span class="w"> </span><span class="m">2</span>&gt;<span class="p">&amp;</span><span class="m">1</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>grep<span class="w"> </span>-E<span class="w"> </span><span class="s2">&quot;page faults|Maximum resident&quot;</span>
+</code></pre></div>
+<div class="hl"><pre><code class="language-text">	Maximum resident set size (kbytes): 41216
+	Major (requiring I/O) page faults: 0
+	Minor (reclaiming a frame) page faults: 10067
+</code></pre></div>
+<div class="hl"><pre><code class="language-bash">perf<span class="w"> </span>stat<span class="w"> </span>-e<span class="w"> </span>page-faults,minor-faults,major-faults<span class="w"> </span>./fault_count
+</code></pre></div>
+<div class="hl"><pre><code class="language-text">            10,068      page-faults
+            10,068      minor-faults
+                 0      major-faults
+</code></pre></div>
+<p><code>page-faults</code>는 Kernel이 세는 <strong>Software Event</strong>이므로 VirtualBox에서도 동작합니다. 실행 중인 Process는 <code>ps</code>로 봅니다.</p>
+<div class="hl"><pre><code class="language-bash">ps<span class="w"> </span>-o<span class="w"> </span>pid,min_flt,maj_flt,rss,comm<span class="w"> </span>-p<span class="w"> </span><span class="nv">$$</span>
+</code></pre></div>
+<div class="hl"><pre><code class="language-text">    PID  MINFL  MAJFL   RSS COMMAND
+   1873   3512      2  5632 bash
+</code></pre></div>
+<table>
+<thead>
+<tr>
+<th>관찰</th>
+<th>의심할 것</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Minor Fault가 매우 많고 시간이 그곳에서 소모됨</td>
+<td>큰 Memory를 반복해서 할당/해제 (<code>mmap</code>/<code>munmap</code> 반복). 재사용하거나 pre-fault</td>
+</tr>
+<tr>
+<td>Major Fault가 계속 발생</td>
+<td>Memory 부족으로 Swap 중이거나, Page Cache가 밀려남. <code>free -m</code>, <code>vmstat 1</code> 확인</td>
+</tr>
+<tr>
+<td>시작 직후에만 Major Fault</td>
+<td>실행 File과 Library를 Disk에서 읽어 오는 정상 동작</td>
+</tr>
+</tbody>
+</table>
+<h3 class="guide">정리</h3><ul>
+<li>Page Fault는 MMU가 <strong>유효하지 않은 PTE</strong>(Present=0, 권한 위반)를 만났을 때 발생하는 Exception입니다. 주소는 CR2에 남고, 처리 후 <strong>같은 명령이 다시 실행</strong>됩니다.</li>
+<li>Handler는 <strong>VMA를 찾아</strong> 정당한 접근인지 판단합니다. 정당하면 PTE를 고치고, 아니면 <code>SIGSEGV</code>(<code>MAPERR</code>: VMA 없음, <code>ACCERR</code>: 권한 불일치)를 보냅니다.</li>
+<li>Anonymous Memory의 첫 접근, Zero Page에서 실제 Frame으로의 전환, COW, Stack 확장이 모두 Page Fault로 구현됩니다.</li>
+<li><strong>Minor Fault</strong>는 Disk I/O 없이 끝나고, <strong>Major Fault</strong>는 Disk에서 읽어 와야 하므로 수백 배 느리며 그동안 Process는 Sleep합니다.</li>
+<li><code>getrusage</code>, <code>/usr/bin/time -v</code>, <code>perf stat -e page-faults</code>, <code>ps -o min_flt,maj_flt</code>로 측정합니다.</li>
+</ul>
+<h3>생각해 볼 질문</h3><ol>
+<li><code>fault_count</code>에서 <code>mmap()</code> 호출 자체는 Fault를 일으키지 않는 이유는 무엇인가요?</li>
+<li>Page Fault 처리 후 CPU가 "다음 명령"이 아니라 "같은 명령"을 다시 실행해야 하는 이유는?</li>
+<li><code>zero_page</code>에서 읽기 단계의 RSS가 늘지 않은 이유와, 쓰기 단계에서 Fault가 다시 발생한 이유를 설명해 보세요.</li>
+<li>같은 프로그램을 두 번 실행했을 때 첫 번째만 Major Fault가 발생하는 이유는?</li>
+<li>어떤 프로그램이 <code>si_addr=0x18</code>, <code>SEGV_MAPERR</code>로 죽었습니다. 가장 먼저 의심할 코드의 형태는?</li>
+<li>(실습) <code>fault_count.c</code>의 <code>mmap</code> Flag에 <code>MAP_POPULATE</code>를 추가하면 결과가 어떻게 달라지나요?</li>
+</ol>
+<h3>오류 해결</h3><table>
+<thead>
+<tr>
+<th>증상</th>
+<th>원인</th>
+<th>해결</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>drop_caches</code> 후에도 major가 0</td>
+<td>File이 tmpfs(<code>/tmp</code>)에 있음, 또는 VM Disk가 Host Cache의 영향을 받음</td>
+<td><code>lab</code> Directory에서 실행했는지 확인. Host Cache 때문이면 major는 발생하되 시간 차이만 작게 나옵니다</td>
+</tr>
+<tr>
+<td><code>tee: /proc/sys/vm/drop_caches: Permission denied</code></td>
+<td><code>sudo</code> 위치 오류</td>
+<td><code>echo 3 \| sudo tee ...</code> 형태로 <code>tee</code> 앞에 sudo</td>
+</tr>
+<tr>
+<td><code>fault_count</code>의 첫 번째 쓰기가 10000보다 훨씬 작음</td>
+<td>THP 적용</td>
+<td>Source의 <code>MADV_NOHUGEPAGE</code> 확인 후 다시 Build</td>
+</tr>
+<tr>
+<td><code>/usr/bin/time: No such file</code></td>
+<td>미설치 (Shell 내장 <code>time</code>과 다름)</td>
+<td><code>sudo apt install -y time</code></td>
+</tr>
+<tr>
+<td><code>perf stat</code>이 <code>Permission denied</code></td>
+<td>perf 권한 제한</td>
+<td><code>sudo sysctl kernel.perf_event_paranoid=1</code> (<a href="https://imguru-mooc.github.io/adv-sysprog/ch00/lecture.html">0.2</a> 참고)</td>
+</tr>
+<tr>
+<td><code>./major_fault</code>: <code>big.dat (먼저 ./major_fault make)</code></td>
+<td>File 미생성</td>
+<td><code>./major_fault make</code></td>
+</tr>
+</tbody>
+</table>
+<div class="hl"><pre><code class="language-bash">make<span class="w"> </span>clean<span class="w">      </span><span class="c1"># big.dat (128MB) 도 함께 삭제됩니다</span>
+</code></pre></div>
+<h4 id="b9-1" class="fill">✏️ 빈칸 채우기 9-1</h4>
+<p>Page 를 처음 쓸 때와 두 번째 쓸 때의 Page Fault 수를 비교하는 구간입니다. <code>faults()</code> 는 getrusage 의 minflt/majflt 를 읽습니다. <span style="color:var(--ink-soft)">(<code>src/L09/fault_count.c</code> 14~30행)</span></p>
+<div class="hl"><pre><code class="language-c"><span class="w">    </span><span class="n">faults</span><span class="p">(</span><span class="o">&amp;</span><span class="n">mn0</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">mj0</span><span class="p">);</span>
+<span class="w">    </span><span class="n">p</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n"><input class="blank" data-q="b9-1" data-i="0" spellcheck="false" autocomplete="off"></span><span class="p">(</span><span class="nb">NULL</span><span class="p">,</span><span class="w"> </span><span class="n">NPAGES</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">PAGE</span><span class="p">,</span><span class="w"> </span><span class="n">PROT_READ</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="n">PROT_WRITE</span><span class="p">,</span>
+<span class="w">             </span><span class="n">MAP_PRIVATE</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="n"><input class="blank" data-q="b9-1" data-i="1" spellcheck="false" autocomplete="off"></span><span class="p">,</span><span class="w"> </span><span class="mi">-1</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="p">);</span>
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">p</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="n">MAP_FAILED</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="n">perror</span><span class="p">(</span><span class="s">&quot;mmap&quot;</span><span class="p">);</span>
+<span class="w">        </span><span class="k">return</span><span class="w"> </span><span class="n">EXIT_FAILURE</span><span class="p">;</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="w">    </span><span class="n">madvise</span><span class="p">((</span><span class="kt">void</span><span class="w"> </span><span class="o">*</span><span class="p">)</span><span class="n">p</span><span class="p">,</span><span class="w"> </span><span class="n">NPAGES</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">PAGE</span><span class="p">,</span><span class="w"> </span><span class="n">MADV_NOHUGEPAGE</span><span class="p">);</span>
+<span class="w">    </span><span class="n">faults</span><span class="p">(</span><span class="o">&amp;</span><span class="n">mn1</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">mj1</span><span class="p">);</span>
+
+<span class="w">    </span><span class="k">for</span><span class="w"> </span><span class="p">(</span><span class="n">i</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span><span class="w"> </span><span class="n">i</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="n">NPAGES</span><span class="p">;</span><span class="w"> </span><span class="n">i</span><span class="o">++</span><span class="p">)</span><span class="w">            </span><span class="cm">/* 첫 번째 접근 */</span>
+<span class="w">        </span><span class="n">p</span><span class="p">[</span><span class="n">i</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">PAGE</span><span class="p">]</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">1</span><span class="p">;</span>
+<span class="w">    </span><span class="n"><input class="blank" data-q="b9-1" data-i="2" spellcheck="false" autocomplete="off"></span><span class="p">(</span><span class="o">&amp;</span><span class="n">mn2</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">mj2</span><span class="p">);</span>
+
+<span class="w">    </span><span class="k">for</span><span class="w"> </span><span class="p">(</span><span class="n">i</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span><span class="w"> </span><span class="n">i</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="n">NPAGES</span><span class="p">;</span><span class="w"> </span><span class="n">i</span><span class="o">++</span><span class="p">)</span><span class="w">            </span><span class="cm">/* 두 번째 접근 */</span>
+<span class="w">        </span><span class="n">p</span><span class="p">[</span><span class="n">i</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n"><input class="blank" data-q="b9-1" data-i="3" spellcheck="false" autocomplete="off"></span><span class="p">]</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">2</span><span class="p">;</span>
+<span class="w">    </span><span class="n">faults</span><span class="p">(</span><span class="o">&amp;</span><span class="n">mn3</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">mj3</span><span class="p">);</span>
+</code></pre></div>
+<div class="qbar"><button class="btn check" data-q="b9-1">확인</button><button class="btn clear" data-q="b9-1">지우기</button><span class="qres" id="res-b9-1"></span></div>
+<details>
+<summary class="lock">🔒 정답 보기 9-1</summary>
+<div class="hl"><pre><code class="language-c"><span class="w">    </span><span class="n">faults</span><span class="p">(</span><span class="o">&amp;</span><span class="n">mn0</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">mj0</span><span class="p">);</span>
+<span class="w">    </span><span class="n">p</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">mmap</span><span class="p">(</span><span class="nb">NULL</span><span class="p">,</span><span class="w"> </span><span class="n">NPAGES</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">PAGE</span><span class="p">,</span><span class="w"> </span><span class="n">PROT_READ</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="n">PROT_WRITE</span><span class="p">,</span>
+<span class="w">             </span><span class="n">MAP_PRIVATE</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="n">MAP_ANONYMOUS</span><span class="p">,</span><span class="w"> </span><span class="mi">-1</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="p">);</span>
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">p</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="n">MAP_FAILED</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="n">perror</span><span class="p">(</span><span class="s">&quot;mmap&quot;</span><span class="p">);</span>
+<span class="w">        </span><span class="k">return</span><span class="w"> </span><span class="n">EXIT_FAILURE</span><span class="p">;</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="w">    </span><span class="n">madvise</span><span class="p">((</span><span class="kt">void</span><span class="w"> </span><span class="o">*</span><span class="p">)</span><span class="n">p</span><span class="p">,</span><span class="w"> </span><span class="n">NPAGES</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">PAGE</span><span class="p">,</span><span class="w"> </span><span class="n">MADV_NOHUGEPAGE</span><span class="p">);</span>
+<span class="w">    </span><span class="n">faults</span><span class="p">(</span><span class="o">&amp;</span><span class="n">mn1</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">mj1</span><span class="p">);</span>
+
+<span class="w">    </span><span class="k">for</span><span class="w"> </span><span class="p">(</span><span class="n">i</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span><span class="w"> </span><span class="n">i</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="n">NPAGES</span><span class="p">;</span><span class="w"> </span><span class="n">i</span><span class="o">++</span><span class="p">)</span><span class="w">            </span><span class="cm">/* 첫 번째 접근 */</span>
+<span class="w">        </span><span class="n">p</span><span class="p">[</span><span class="n">i</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">PAGE</span><span class="p">]</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">1</span><span class="p">;</span>
+<span class="w">    </span><span class="n">faults</span><span class="p">(</span><span class="o">&amp;</span><span class="n">mn2</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">mj2</span><span class="p">);</span>
+
+<span class="w">    </span><span class="k">for</span><span class="w"> </span><span class="p">(</span><span class="n">i</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span><span class="w"> </span><span class="n">i</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="n">NPAGES</span><span class="p">;</span><span class="w"> </span><span class="n">i</span><span class="o">++</span><span class="p">)</span><span class="w">            </span><span class="cm">/* 두 번째 접근 */</span>
+<span class="w">        </span><span class="n">p</span><span class="p">[</span><span class="n">i</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="n">PAGE</span><span class="p">]</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">2</span><span class="p">;</span>
+<span class="w">    </span><span class="n">faults</span><span class="p">(</span><span class="o">&amp;</span><span class="n">mn3</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">mj3</span><span class="p">);</span>
+</code></pre></div>
+<p><code>mmap(MAP_PRIVATE | MAP_ANONYMOUS)</code> 는 VMA 만 만들고 Page 는 0개입니다(minor +0~1). 첫 번째 쓰기 10000번은 Page 마다 Minor Fault 가 나서 minor 가 약 10000 늘고, 두 번째 쓰기는 PTE 가 이미 있으므로 Fault 가 거의 없습니다. Disk I/O 가 필요 없었으므로 major 는 0 입니다.</p>
+<p><strong>빌드와 실행</strong></p><div class="hl"><pre><code class="language-bash"><span class="nb">cd</span><span class="w"> </span>~/lsp2/ch02/src/L09
+make<span class="w"> </span>fault_count<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span>./fault_count
+</code></pre></div>
+</details>
+
+<h4 id="p9-2" class="fill">✏️ 괄호 넣기 9-2</h4>
+<ol>
+<li>Page Fault 가 났을 때 Fault 를 일으킨 주소는 CPU 의 <input class="blank pb" data-q="p9-2" data-i="0" spellcheck="false" autocomplete="off"> Register 에 담겨 Kernel Handler 에 전달된다.</li>
+<li>Disk 를 읽지 않고 처리되는 Page Fault 는 <input class="blank pb" data-q="p9-2" data-i="1" spellcheck="false" autocomplete="off"> Fault, Disk I/O 가 필요한 것은 <input class="blank pb" data-q="p9-2" data-i="2" spellcheck="false" autocomplete="off"> Fault 이다.</li>
+<li>VMA 가 없는 주소에 접근하면 Kernel 은 Process 에 <input class="blank pb" data-q="p9-2" data-i="3" spellcheck="false" autocomplete="off"> 를 보낸다.</li>
+<li>Kernel 이 Page Fault 를 처리하고 복귀하면 CPU 는 Fault 를 일으킨 명령을 <select class="blank sel" data-q="p9-2" data-i="4"><option value="">선택</option><option>처음부터 다시 실행한다</option><option>건너뛰고 다음 명령을 실행한다</option><option>Kernel 이 대신 실행해 준다</option></select>.</li>
+</ol>
+<div class="qbar"><button class="btn check" data-q="p9-2">확인</button><button class="btn clear" data-q="p9-2">지우기</button><span class="qres" id="res-p9-2"></span></div>
+<details>
+<summary class="lock">🔒 정답 보기 9-2</summary>
+<ol><li>CR2</li><li>Minor</li><li>Major</li><li>SIGSEGV</li><li>처음부터 다시 실행한다</li></ol>
+<p>#PF Exception 이 나면 CR2 에 주소, Error Code 에 원인(쓰기/읽기, User/Kernel, Not Present/권한)이 담깁니다. Handler 는 VMA 를 찾아 정상 접근이면 Page 를 마련하고(Minor: 0 Page·Page Cache 에 있음, Major: Disk 읽기), VMA 가 없거나 권한 위반이면 SIGSEGV 입니다. 복귀 후 같은 명령이 재실행됩니다(🎬 C2-4).</p>
+</details>
+
+<blockquote><p><strong>다음</strong> — 9-6에서 File을 <code>mmap</code>해서 배열처럼 읽었습니다. <code>read()</code>를 한 번도 호출하지 않았는데 File 내용이 보였습니다. Page Fault와 VMA를 알았으니 이제 <code>mmap</code>을 제대로 이해할 수 있습니다.
+<a href="#sec5">L10. mmap과 Memory Mapped File</a></p></blockquote>
+</section>
+<section id="sec5" class="lesson"><header class="sec-head"><span class="period">Lecture 10</span><h1>mmap과 Memory Mapped File</h1><span class="time">영상 18분</span></header>
+<p><code>mmap</code>은 "File을 Memory에 복사하는 함수"가 아닙니다. "이 주소 범위에 접근하면 이 File이 보이게 하라"는 VMA를 만드는 함수입니다.</p>
+<p class="goal-title"><strong>학습 목표</strong></p><ul>
+<li><code>mmap</code>의 인자와, File Mapping / Anonymous Mapping, <code>MAP_SHARED</code> / <code>MAP_PRIVATE</code>의 네 가지 조합을 설명할 수 있다.</li>
+<li><code>mmap</code>한 File에 접근할 때 Page Fault와 Page Cache가 어떻게 연결되는지 설명할 수 있다.</li>
+<li><code>MAP_SHARED</code>로 File을 수정하고 <code>msync</code>로 반영 시점을 제어할 수 있다.</li>
+<li><code>MAP_SHARED | MAP_ANONYMOUS</code>로 Process 간 Memory를 공유할 수 있다.</li>
+<li><code>mmap</code> 사용 시의 주의점(SIGBUS, 크기 고정, 오류 처리)을 설명할 수 있다.</li>
+</ul>
+<p class="anim">🎬 <a href="animation.html#l5" style="color:inherit"><strong>C2-5 mmap: File ↔ Page Cache ↔ Address Space</strong></a> — animation.html 에서 단계별로 조작</p>
+<h3>준비</h3><div class="hl"><pre><code class="language-bash"><span class="nb">cd</span><span class="w"> </span>~/lsp2/ch02/src/L10
+make
+<span class="nb">echo</span><span class="w"> </span><span class="s2">&quot;hello mmap world&quot;</span><span class="w"> </span>&gt;<span class="w"> </span>note.txt
+</code></pre></div>
+<h3>10-1. 이미 여러 번 본 mmap</h3>
+<p>이 과정에서 <code>mmap</code>은 이미 여러 번 등장했습니다.</p>
+<table>
+<thead>
+<tr>
+<th>어디에서</th>
+<th>누가</th>
+<th>종류</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>L05: <code>execve</code>가 실행 File의 <code>LOAD</code>를 올림</td>
+<td>Kernel</td>
+<td>File, Private</td>
+</tr>
+<tr>
+<td>L05: ld.so가 libc.so.6을 올림</td>
+<td>Dynamic Loader</td>
+<td>File, Private</td>
+</tr>
+<tr>
+<td>L06: <code>malloc(4MB)</code></td>
+<td>glibc</td>
+<td>Anonymous, Private</td>
+</tr>
+<tr>
+<td>L06: <code>pthread_create</code>의 Thread Stack</td>
+<td>glibc</td>
+<td>Anonymous, Private</td>
+</tr>
+<tr>
+<td>기존 과정: <code>shmget</code>/<code>shmat</code>, POSIX <code>shm_open</code></td>
+<td>Application</td>
+<td>Shared</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Linux에서 Process의 주소 공간은 전부 mmap으로 만들어집니다.</strong> (<code>brk</code>도 Kernel 안에서는 Anonymous VMA의 크기를 바꾸는 일입니다.) 이번 Lecture에서는 Application이 직접 사용합니다.</p>
+<h3>10-2. mmap의 인자와 네 가지 조합</h3>
+<div class="hl"><pre><code class="language-c"><span class="kt">void</span><span class="w"> </span><span class="o">*</span><span class="nf">mmap</span><span class="p">(</span><span class="kt">void</span><span class="w"> </span><span class="o">*</span><span class="n">addr</span><span class="p">,</span><span class="w"> </span><span class="kt">size_t</span><span class="w"> </span><span class="n">length</span><span class="p">,</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">prot</span><span class="p">,</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">flags</span><span class="p">,</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">fd</span><span class="p">,</span><span class="w"> </span><span class="kt">off_t</span><span class="w"> </span><span class="n">offset</span><span class="p">);</span>
+</code></pre></div>
+<table>
+<thead>
+<tr>
+<th>인자</th>
+<th>의미</th>
+<th>maps의 어느 열이 되는가 (L06)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>addr</code></td>
+<td>희망 주소. 보통 <code>NULL</code>(Kernel이 정함)</td>
+<td>주소 범위</td>
+</tr>
+<tr>
+<td><code>length</code></td>
+<td>길이. Page 단위로 올림됨</td>
+<td>주소 범위</td>
+</tr>
+<tr>
+<td><code>prot</code></td>
+<td><code>PROT_READ</code> <code>PROT_WRITE</code> <code>PROT_EXEC</code></td>
+<td><code>rwx</code></td>
+</tr>
+<tr>
+<td><code>flags</code></td>
+<td><code>MAP_SHARED</code> 또는 <code>MAP_PRIVATE</code>, <code>MAP_ANONYMOUS</code> 등</td>
+<td><code>s</code> / <code>p</code></td>
+</tr>
+<tr>
+<td><code>fd</code>, <code>offset</code></td>
+<td>어느 File의 어디부터. <code>offset</code>은 Page 크기의 배수</td>
+<td>inode, Offset, 경로</td>
+</tr>
+</tbody>
+</table>
+<p>인자가 maps의 한 줄, 즉 <strong>VMA의 Field와 1:1로 대응</strong>합니다.</p>
+<table>
+<thead>
+<tr>
+<th></th>
+<th><code>MAP_PRIVATE</code></th>
+<th><code>MAP_SHARED</code></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>File</strong> (<code>fd</code>)</td>
+<td>읽기는 File 내용. <strong>쓰면 나만의 복사본</strong>(COW), File은 불변. 예: 실행 File, Library</td>
+<td>쓰면 <strong>File이 바뀌고</strong> 같은 File을 Mapping한 다른 Process에도 보임. 예: Database, 공유 File</td>
+</tr>
+<tr>
+<td><strong>Anonymous</strong> (<code>fd = -1</code>)</td>
+<td>0으로 채워진 나만의 Memory. 예: 큰 <code>malloc</code>, Thread Stack</td>
+<td><code>fork</code>한 Process끼리 공유하는 Memory. 예: Parent-Child 공유 Counter</td>
+</tr>
+</tbody>
+</table>
+<h3>10-3. read 없이 File 읽기</h3>
+<p><a href="src/L10/mmap_cat.c">mmap_cat.c</a>는 <code>read()</code>를 한 번도 호출하지 않고 File을 출력합니다.</p>
+<div class="hl"><pre><code class="language-c"><span class="n">p</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">mmap</span><span class="p">(</span><span class="nb">NULL</span><span class="p">,</span><span class="w"> </span><span class="n">st</span><span class="p">.</span><span class="n">st_size</span><span class="p">,</span><span class="w"> </span><span class="n">PROT_READ</span><span class="p">,</span><span class="w"> </span><span class="n">MAP_PRIVATE</span><span class="p">,</span><span class="w"> </span><span class="n">fd</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="p">);</span>
+<span class="n">close</span><span class="p">(</span><span class="n">fd</span><span class="p">);</span><span class="w">                              </span><span class="cm">/* Mapping 은 fd 와 독립적으로 유지된다 */</span>
+<span class="k">for</span><span class="w"> </span><span class="p">(</span><span class="n">i</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span><span class="w"> </span><span class="n">i</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="n">st</span><span class="p">.</span><span class="n">st_size</span><span class="p">;</span><span class="w"> </span><span class="n">i</span><span class="o">++</span><span class="p">)</span><span class="w">        </span><span class="cm">/* File 이 곧 배열이다 */</span>
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">p</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="sc">&#39;\n&#39;</span><span class="p">)</span><span class="w"> </span><span class="n">lines</span><span class="o">++</span><span class="p">;</span>
+</code></pre></div>
+<div class="hl"><pre><code class="language-bash">./mmap_cat<span class="w"> </span>note.txt
+strace<span class="w"> </span>-e<span class="w"> </span><span class="nv">trace</span><span class="o">=</span>openat,read,mmap,close,write<span class="w"> </span>./mmap_cat<span class="w"> </span>note.txt<span class="w"> </span><span class="m">2</span>&gt;<span class="p">&amp;</span><span class="m">1</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>tail<span class="w"> </span>-n<span class="w"> </span><span class="m">6</span>
+</code></pre></div>
+<div class="hl"><pre><code class="language-text">hello mmap world
+-- 1 lines, 17 bytes, mapped at 0x7fec1f050000
+</code></pre></div>
+<div class="hl"><pre><code class="language-text">openat(AT_FDCWD, &quot;note.txt&quot;, O_RDONLY)  = 3
+mmap(NULL, 17, PROT_READ, MAP_PRIVATE, 3, 0) = 0x7fec1f050000
+close(3)                                = 0
+write(1, &quot;hello mmap world\n&quot;, 17)      = 17
+...
+</code></pre></div>
+<p><code>note.txt</code>에 대한 <code>read</code>가 없습니다. <code>p[0]</code>에 처음 접근하는 순간 일어난 일은 L09 그대로입니다.</p>
+<div class="hl"><pre><code class="language-text">p[0] 읽기 → PTE 없음 → Page Fault → VMA 확인: &quot;note.txt 의 Offset 0&quot;
+         → Page Cache 에서 그 Page 를 찾는다 (없으면 Disk 에서 읽어 온다)
+         → 그 Frame 을 PTE 에 연결 → 명령 재실행 → &#39;h&#39; 가 읽힌다
+</code></pre></div>
+<p>핵심은 <strong>Page Cache의 Frame을 그대로 연결한다</strong>는 점입니다. <code>read()</code>는 Page Cache에서 내 Buffer로 <strong>복사</strong>하지만, <code>mmap</code>은 복사하지 않습니다.</p>
+<table>
+<thead>
+<tr>
+<th></th>
+<th><code>read()</code></th>
+<th><code>mmap</code></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Data 경로</td>
+<td>Disk → Page Cache → <strong>복사</strong> → User Buffer</td>
+<td>Disk → Page Cache ← PTE가 직접 가리킴</td>
+</tr>
+<tr>
+<td>System Call</td>
+<td>읽을 때마다</td>
+<td>처음 <code>mmap</code> 한 번. 이후는 Memory 접근</td>
+</tr>
+<tr>
+<td>비용이 드는 곳</td>
+<td>System Call + 복사</td>
+<td>Page Fault + TLB Miss</td>
+</tr>
+</tbody>
+</table>
+<p>어느 쪽이 빠른지는 접근 Pattern에 따라 다릅니다. 정량 비교는 Chapter 3 L14에서 합니다.</p>
+<blockquote>
+<p><strong>📌 NOTE</strong><br />
+File 크기는 17Byte인데 Mapping은 4KB 단위입니다. <code>p[17]</code>부터 <code>p[4095]</code>까지는 접근해도 오류가 나지 않고 0이 읽힙니다. <code>p[4096]</code>은 VMA 밖이므로 <code>SIGSEGV</code>입니다.</p>
+</blockquote>
+<h3>10-4. Animation: File, Page Cache, 주소 공간</h3>
+<p>Process 두 개, Page Cache, Disk를 한 화면에 놓고 Scenario를 비교합니다.</p>
+<ol>
+<li><strong>읽기</strong>: <code>mmap()</code> 직후에는 VMA만 있고 PTE가 없습니다. 첫 접근에서 Page Cache가 채워지고 PTE가 연결됩니다.</li>
+<li><strong>MAP_SHARED 쓰기</strong>: Process A가 쓰면 Page Cache의 Page가 Dirty가 되고, Process B에 <strong>즉시</strong> 보입니다. Disk에는 나중에 반영됩니다.</li>
+<li><strong>MAP_PRIVATE 쓰기</strong>: 쓰는 순간 Page가 복사되어 A만의 Anonymous Page가 됩니다. Page Cache, Disk, Process B는 변하지 않습니다.</li>
+</ol>
+<p class="anim">🎬 <a href="animation.html#l5" style="color:inherit"><strong>C2-5 mmap: File ↔ Page Cache ↔ Address Space</strong></a> — animation.html 에서 직접 조작해 보세요</p>
+<h3>10-5. MAP_PRIVATE: 써도 File은 그대로</h3>
+<p><a href="src/L10/mmap_private.c">mmap_private.c</a></p>
+<div class="hl"><pre><code class="language-bash">./mmap_private
+cat<span class="w"> </span>note.txt
+</code></pre></div>
+<div class="hl"><pre><code class="language-text">Memory : #ello mmap world
+File 은 그대로입니다. cat note.txt 로 확인하세요.
+hello mmap world
+</code></pre></div>
+<p><code>p[0] = '#'</code>에서 COW Fault가 발생해 그 Page가 복사되었습니다. 이후 그 Page는 File과의 연결이 끊긴 나만의 Anonymous Page입니다.</p>
+<p><code>O_RDONLY</code>로 연 File에 <code>PROT_WRITE</code>가 허용된 것도 확인하세요. File에 쓰지 않으므로 File의 쓰기 권한이 필요 없습니다. 실행 File의 <code>.data</code> Segment가 이 방식입니다. 전역 변수를 아무리 바꿔도 실행 File은 변하지 않고, 같은 프로그램을 동시에 여러 개 실행해도 서로의 변수가 섞이지 않습니다(L03 Animation의 "LOAD 4" 단계).</p>
+<h3>10-6. MAP_SHARED: Memory에 쓰면 File이 바뀐다</h3>
+<p><a href="src/L10/mmap_shared.c">mmap_shared.c</a>는 <code>write()</code>를 호출하지 않고 File을 대문자로 바꿉니다.</p>
+<div class="hl"><pre><code class="language-bash">./mmap_shared
+cat<span class="w"> </span>note.txt
+</code></pre></div>
+<div class="hl"><pre><code class="language-text">Memory 에서 대문자로 변경했습니다. cat note.txt 로 확인하세요.
+HELLO MMAP WORLD
+</code></pre></div>
+<div class="hl"><pre><code class="language-bash">strace<span class="w"> </span>-e<span class="w"> </span><span class="nv">trace</span><span class="o">=</span>openat,mmap,msync,munmap,write<span class="w"> </span>./mmap_shared<span class="w"> </span><span class="m">2</span>&gt;<span class="p">&amp;</span><span class="m">1</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>grep<span class="w"> </span>-E<span class="w"> </span><span class="s2">&quot;note|MAP_SHARED|msync&quot;</span>
+</code></pre></div>
+<div class="hl"><pre><code class="language-text">openat(AT_FDCWD, &quot;note.txt&quot;, O_RDWR)    = 3
+mmap(NULL, 17, PROT_READ|PROT_WRITE, MAP_SHARED, 3, 0) = 0x7f6b1c0f2000
+msync(0x7f6b1c0f2000, 17, MS_SYNC)      = 0
+</code></pre></div>
+<p>일어난 일의 순서입니다.</p>
+<div class="hl"><pre><code class="language-text">p[i] = toupper(p[i])   →  Page Cache 의 Page 를 직접 수정. CPU 가 PTE 의 Dirty bit 를 1 로 (L07)
+                          이 시점에 다른 Process 가 read() 하거나 mmap 해서 보면 이미 대문자
+msync(MS_SYNC)         →  Dirty Page 를 Disk 에 쓰고 완료될 때까지 기다림
+(msync 를 생략하면)      →  Kernel 이 나중에 알아서 Disk 에 씀. 그 전에 전원이 꺼지면 유실
+</code></pre></div>
+<table>
+<thead>
+<tr>
+<th></th>
+<th>의미</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>msync(MS_SYNC)</code></td>
+<td>Disk 반영이 끝날 때까지 기다림. <code>fsync</code>의 mmap 판</td>
+</tr>
+<tr>
+<td><code>msync(MS_ASYNC)</code></td>
+<td>반영을 요청만 하고 즉시 return</td>
+</tr>
+<tr>
+<td><code>munmap</code>, Process 종료</td>
+<td>Mapping만 해제. <strong>Disk 반영을 보장하지 않음</strong>(Dirty Page는 Page Cache에 남아 나중에 기록됨)</td>
+</tr>
+</tbody>
+</table>
+<p>"Memory에 썼는데 Disk에는 언제 가는가"는 <code>write()</code>에서도 똑같이 생기는 문제입니다. Chapter 3 L15(Writeback, fsync)에서 자세히 다룹니다.</p>
+<blockquote>
+<p><strong>❗ IMPORTANT</strong><br />
+쓰기 가능한 <code>MAP_SHARED</code>는 File을 <strong><code>O_RDWR</code></strong> 로 열어야 합니다. <code>O_WRONLY</code>로는 안 됩니다. Mapping하려면 읽을 수 있어야 하기 때문입니다. 위반하면 <code>mmap</code>이 <code>EACCES</code>로 실패합니다.</p>
+</blockquote>
+<h3>10-7. File 없는 공유 Memory</h3>
+<p><a href="src/L10/anon_shared.c">anon_shared.c</a>는 <code>fork</code> 전에 <code>MAP_SHARED | MAP_ANONYMOUS</code>로 <code>int</code> 하나를 만듭니다.</p>
+<div class="hl"><pre><code class="language-bash">./anon_shared
+</code></pre></div>
+<div class="hl"><pre><code class="language-text">private_counter = 0   (일반 변수: fork 후 각자의 복사본)
+shared_counter  = 100   (MAP_SHARED: Child 의 쓰기가 보인다)
+</code></pre></div>
+<p>일반 변수는 <code>fork</code> 후 COW로 갈라지지만(L07), <code>MAP_SHARED</code> 영역은 COW 대상이 아닙니다. Parent와 Child의 PTE가 <strong>계속 같은 Frame</strong>을 가리킵니다.</p>
+<p>기존 과정의 Shared Memory와 비교합니다.</p>
+<table>
+<thead>
+<tr>
+<th></th>
+<th>System V <code>shmget</code>/<code>shmat</code></th>
+<th>POSIX <code>shm_open</code> + <code>mmap</code></th>
+<th><code>MAP_SHARED \| MAP_ANONYMOUS</code></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>이름</td>
+<td>Key (<code>ftok</code>)</td>
+<td><code>/name</code> (<code>/dev/shm</code> 아래의 File)</td>
+<td>없음</td>
+</tr>
+<tr>
+<td>공유 대상</td>
+<td>아무 Process</td>
+<td>아무 Process</td>
+<td><code>fork</code>로 만든 Process만</td>
+</tr>
+<tr>
+<td>정리</td>
+<td><code>shmctl(IPC_RMID)</code> 필요</td>
+<td><code>shm_unlink</code> 필요</td>
+<td>자동</td>
+</tr>
+<tr>
+<td>내부 구현</td>
+<td>셋 다 tmpfs File의 Shared Mapping</td>
+<td></td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>⚠ WARNING</strong><br />
+공유 Memory는 공유만 해 줄 뿐 <strong>동기화는 해 주지 않습니다.</strong> 두 Process가 동시에 <code>*shared_counter += 1</code>을 하면 Race Condition입니다. 기존 과정의 Semaphore, 또는 <code>PTHREAD_PROCESS_SHARED</code> 속성의 mutex를 공유 영역 안에 두어야 합니다. Chapter 4에서 Atomic Operation을 다룹니다.</p>
+</blockquote>
+<h3>10-8. 주의점: SIGBUS와 크기</h3>
+<p><code>mmap</code>은 편리하지만 <code>read</code>/<code>write</code>에 없는 함정이 있습니다. <a href="src/L10/sigbus.c">sigbus.c</a></p>
+<div class="hl"><pre><code class="language-bash">./sigbus
+</code></pre></div>
+<div class="hl"><pre><code class="language-text">1. 두 번째 Page 에 쓰기 성공
+2. File 을 4096 Bytes 로 줄였습니다. Mapping(8192)은 그대로입니다
+Bus error (core dumped)
+</code></pre></div>
+<p>VMA는 8192Byte 그대로인데 뒤에 있는 File이 4096Byte로 줄었습니다. 접근은 VMA 범위 안이므로 <code>SIGSEGV</code>가 아닙니다. 하지만 Page Fault Handler가 그 Page를 File에서 가져오려 해도 <strong>가져올 내용이 없습니다.</strong> 이때 Kernel은 <strong><code>SIGBUS</code></strong> 를 보냅니다.</p>
+<table>
+<thead>
+<tr>
+<th>Signal</th>
+<th>의미</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>SIGSEGV</code></td>
+<td>주소 자체가 약속에 없다 (VMA 없음 / 권한 불일치)</td>
+</tr>
+<tr>
+<td><code>SIGBUS</code></td>
+<td>주소는 유효한데 <strong>뒤에 있는 실체를 가져올 수 없다</strong> (File이 줄어듦, Disk I/O Error, Disk Full)</td>
+</tr>
+</tbody>
+</table>
+<p><code>read()</code>였다면 <code>-1</code>이나 짧은 return 값으로 받았을 I/O 오류가, <code>mmap</code>에서는 <strong>Memory 접근 도중의 Signal</strong>로 옵니다. 오류를 처리하기가 훨씬 어렵습니다.</p>
+<table>
+<thead>
+<tr>
+<th>주의점</th>
+<th>내용</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>크기 0인 File</td>
+<td><code>mmap(length = 0)</code>은 <code>EINVAL</code>. 미리 검사</td>
+</tr>
+<tr>
+<td>File을 늘리며 쓰기</td>
+<td>Mapping은 File을 늘려 주지 않음. 먼저 <code>ftruncate</code>로 크기를 확보한 뒤 <code>mmap</code></td>
+</tr>
+<tr>
+<td>다른 Process가 File을 줄임</td>
+<td><code>SIGBUS</code>. Log File처럼 외부에서 바뀌는 File에는 부적합</td>
+</tr>
+<tr>
+<td><code>offset</code></td>
+<td>Page 크기의 배수여야 함. 아니면 <code>EINVAL</code></td>
+</tr>
+<tr>
+<td>실패 검사</td>
+<td><code>NULL</code>이 아니라 <strong><code>MAP_FAILED</code></strong> (<code>(void *)-1</code>)와 비교</td>
+</tr>
+<tr>
+<td>작은 File, 순차 읽기</td>
+<td><code>read</code>가 더 단순하고 빠른 경우가 많음 (Chapter 3)</td>
+</tr>
+</tbody>
+</table>
+<h3>10-9. Chapter 2 정리</h3>
+<p>Chapter 2 전체가 하나의 그림으로 이어집니다.</p>
+<div class="hl"><pre><code class="language-text">mmap / brk / execve          VMA 를 만든다: &quot;이 주소 범위에 접근하면 이것이 보여야 한다&quot;      L06, L10
+        ↓
+Memory 접근                   MMU 가 TLB 를 본다 → Miss 면 Page Table 4 단계 Walk            L07, L08
+        ↓
+PTE 가 없거나 권한 위반         Page Fault → Kernel 이 VMA 를 찾아 판단한다                     L09
+        ↓
+   ┌─ Anonymous 첫 접근        Zero Page 또는 새 Frame
+   ├─ File Mapping            Page Cache 의 Frame 을 연결 (없으면 Disk 에서: Major)
+   ├─ 쓰기 + Private           COW: 복사
+   ├─ Stack 바로 아래          VMA 확장
+   └─ 약속에 없음              SIGSEGV   /   실체를 가져올 수 없음: SIGBUS
+        ↓
+PTE 갱신, 같은 명령 재실행       프로그램은 아무 일도 없었던 것처럼 계속된다
+</code></pre></div>
+<h3 class="guide">정리</h3><ul>
+<li><code>mmap</code>은 <strong>VMA를 만드는</strong> System Call입니다. 인자가 maps의 각 열과 대응합니다. Process의 주소 공간 전체가 mmap으로 만들어집니다.</li>
+<li>File Mapping은 Page Fault 때 <strong>Page Cache의 Frame을 PTE에 직접 연결</strong>합니다. <code>read</code>와 달리 User Buffer로의 복사가 없습니다.</li>
+<li><code>MAP_PRIVATE</code>는 쓰는 순간 COW로 복사되어 File이 바뀌지 않습니다. <code>MAP_SHARED</code>는 Page Cache를 직접 수정하므로 다른 Process에 즉시 보이고, Disk 반영은 <code>msync</code> 또는 Kernel의 Writeback이 합니다.</li>
+<li><code>MAP_SHARED | MAP_ANONYMOUS</code>는 <code>fork</code>한 Process 간의 가장 간단한 공유 Memory입니다. 동기화는 별도로 필요합니다.</li>
+<li>Mapping 뒤의 File이 줄어들거나 I/O 오류가 나면 <code>SIGBUS</code>가 발생합니다. 실패는 <code>MAP_FAILED</code>로 검사합니다.</li>
+</ul>
+<h3>생각해 볼 질문</h3><ol>
+<li><code>mmap</code> 직후 <code>close(fd)</code>를 해도 Mapping을 계속 쓸 수 있는 이유는 무엇인가요?</li>
+<li><code>mmap_cat</code>을 strace로 보면 <code>note.txt</code>에 대한 <code>read</code>가 없습니다. File 내용은 어떤 경로로 Process에 보이게 되었나요?</li>
+<li><code>MAP_PRIVATE</code>로 Mapping한 File에 <code>O_RDONLY</code>만으로 <code>PROT_WRITE</code>가 가능한 이유는?</li>
+<li><code>mmap_shared</code>에서 <code>msync</code>를 빼고 실행해도 <code>cat note.txt</code>에는 대문자가 보입니다. 그렇다면 <code>msync</code>는 무엇을 위해 필요한가요?</li>
+<li><code>SIGSEGV</code>와 <code>SIGBUS</code>의 차이를 Page Fault Handler의 관점에서 설명해 보세요.</li>
+<li>(실습) 두 Terminal에서 같은 File을 <code>MAP_SHARED</code>로 Mapping하고, 한쪽에서 쓴 내용이 다른 쪽에서 <code>msync</code> 없이 보이는지 확인하는 프로그램을 작성해 보세요.</li>
+</ol>
+<h3>오류 해결</h3><table>
+<thead>
+<tr>
+<th>증상</th>
+<th>원인</th>
+<th>해결</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>note.txt: No such file or directory</code></td>
+<td>File 미생성</td>
+<td><code>echo "hello mmap world" &gt; note.txt</code></td>
+</tr>
+<tr>
+<td><code>mmap: Permission denied</code> (<code>mmap_shared</code>)</td>
+<td>File을 <code>O_RDONLY</code>/<code>O_WRONLY</code>로 열었거나 File에 쓰기 권한 없음</td>
+<td><code>O_RDWR</code>, <code>chmod u+w note.txt</code></td>
+</tr>
+<tr>
+<td><code>mmap: Invalid argument</code></td>
+<td>길이 0인 File, 또는 <code>offset</code>이 Page 배수가 아님</td>
+<td>File 내용 확인, <code>offset</code>을 4096의 배수로</td>
+</tr>
+<tr>
+<td><code>mmap_shared</code> 후에도 소문자</td>
+<td><code>mmap_private</code>를 실행함</td>
+<td>실행 File 이름 확인</td>
+</tr>
+<tr>
+<td><code>./sigbus</code>가 <code>Bus error</code> 없이 끝남</td>
+<td>File System에 따라 드물게 다르게 동작</td>
+<td><code>lab</code> Directory(ext4)에서 실행했는지 확인</td>
+</tr>
+<tr>
+<td><code>Bus error</code> 뒤 <code>core</code> File이 생김</td>
+<td>Core Dump 설정</td>
+<td><code>rm -f core*</code>. Core Dump는 Chapter 7에서 다룹니다</td>
+</tr>
+</tbody>
+</table>
+<div class="hl"><pre><code class="language-bash">make<span class="w"> </span>clean
+</code></pre></div>
+<h4 id="b10-1" class="fill">✏️ 빈칸 채우기 10-1</h4>
+<p>File 을 Memory 에 Mapping 해 write() 호출 없이 내용을 바꾸는 코드입니다. <span style="color:var(--ink-soft)">(<code>src/L10/mmap_shared.c</code> 15~33행)</span></p>
+<div class="hl"><pre><code class="language-c"><span class="w">    </span><span class="kt">int</span><span class="w">         </span><span class="n">fd</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">open</span><span class="p">(</span><span class="s">&quot;note.txt&quot;</span><span class="p">,</span><span class="w"> </span><span class="n"><input class="blank" data-q="b10-1" data-i="0" spellcheck="false" autocomplete="off"></span><span class="p">);</span><span class="w">      </span><span class="cm">/* 쓰기용 <input class="blank" data-q="b10-1" data-i="1" spellcheck="false" autocomplete="off"> 는 O_RDWR 필요 */</span>
+
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">fd</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="mi">0</span><span class="w"> </span><span class="o">||</span><span class="w"> </span><span class="n">fstat</span><span class="p">(</span><span class="n">fd</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">st</span><span class="p">)</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="mi">0</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="n">perror</span><span class="p">(</span><span class="s">&quot;note.txt (먼저: echo hello mmap world &gt; note.txt)&quot;</span><span class="p">);</span>
+<span class="w">        </span><span class="k">return</span><span class="w"> </span><span class="n">EXIT_FAILURE</span><span class="p">;</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="w">    </span><span class="n">p</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">mmap</span><span class="p">(</span><span class="nb">NULL</span><span class="p">,</span><span class="w"> </span><span class="p">(</span><span class="kt">size_t</span><span class="p">)</span><span class="n">st</span><span class="p">.</span><span class="n">st_size</span><span class="p">,</span><span class="w"> </span><span class="n">PROT_READ</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="n">PROT_WRITE</span><span class="p">,</span><span class="w"> </span><span class="n">MAP_SHARED</span><span class="p">,</span><span class="w"> </span><span class="n">fd</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="p">);</span>
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">p</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="n">MAP_FAILED</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="n">perror</span><span class="p">(</span><span class="s">&quot;mmap&quot;</span><span class="p">);</span>
+<span class="w">        </span><span class="k">return</span><span class="w"> </span><span class="n">EXIT_FAILURE</span><span class="p">;</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="w">    </span><span class="n">close</span><span class="p">(</span><span class="n">fd</span><span class="p">);</span>
+
+<span class="w">    </span><span class="k">for</span><span class="w"> </span><span class="p">(</span><span class="n">i</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span><span class="w"> </span><span class="n">i</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="n">st</span><span class="p">.</span><span class="n">st_size</span><span class="p">;</span><span class="w"> </span><span class="n">i</span><span class="o">++</span><span class="p">)</span><span class="w">                </span><span class="cm">/* write() 호출이 없다 */</span>
+<span class="w">        </span><span class="n">p</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">(</span><span class="kt">char</span><span class="p">)</span><span class="n"><input class="blank" data-q="b10-1" data-i="2" spellcheck="false" autocomplete="off"></span><span class="p">((</span><span class="kt">unsigned</span><span class="w"> </span><span class="kt">char</span><span class="p">)</span><span class="n">p</span><span class="p">[</span><span class="n">i</span><span class="p">]);</span>
+
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n"><input class="blank" data-q="b10-1" data-i="3" spellcheck="false" autocomplete="off"></span><span class="p">(</span><span class="n">p</span><span class="p">,</span><span class="w"> </span><span class="p">(</span><span class="kt">size_t</span><span class="p">)</span><span class="n">st</span><span class="p">.</span><span class="n">st_size</span><span class="p">,</span><span class="w"> </span><span class="n"><input class="blank" data-q="b10-1" data-i="4" spellcheck="false" autocomplete="off"></span><span class="p">)</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="mi">0</span><span class="p">)</span><span class="w">  </span><span class="cm">/* Disk 까지 반영을 기다린다 */</span>
+<span class="w">        </span><span class="n">perror</span><span class="p">(</span><span class="s">&quot;msync&quot;</span><span class="p">);</span>
+<span class="w">    </span><span class="n">munmap</span><span class="p">(</span><span class="n">p</span><span class="p">,</span><span class="w"> </span><span class="p">(</span><span class="kt">size_t</span><span class="p">)</span><span class="n">st</span><span class="p">.</span><span class="n">st_size</span><span class="p">);</span>
+</code></pre></div>
+<div class="qbar"><button class="btn check" data-q="b10-1">확인</button><button class="btn clear" data-q="b10-1">지우기</button><span class="qres" id="res-b10-1"></span></div>
+<details>
+<summary class="lock">🔒 정답 보기 10-1</summary>
+<div class="hl"><pre><code class="language-c"><span class="w">    </span><span class="kt">int</span><span class="w">         </span><span class="n">fd</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">open</span><span class="p">(</span><span class="s">&quot;note.txt&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">O_RDWR</span><span class="p">);</span><span class="w">      </span><span class="cm">/* 쓰기용 MAP_SHARED 는 O_RDWR 필요 */</span>
+
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">fd</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="mi">0</span><span class="w"> </span><span class="o">||</span><span class="w"> </span><span class="n">fstat</span><span class="p">(</span><span class="n">fd</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">st</span><span class="p">)</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="mi">0</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="n">perror</span><span class="p">(</span><span class="s">&quot;note.txt (먼저: echo hello mmap world &gt; note.txt)&quot;</span><span class="p">);</span>
+<span class="w">        </span><span class="k">return</span><span class="w"> </span><span class="n">EXIT_FAILURE</span><span class="p">;</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="w">    </span><span class="n">p</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">mmap</span><span class="p">(</span><span class="nb">NULL</span><span class="p">,</span><span class="w"> </span><span class="p">(</span><span class="kt">size_t</span><span class="p">)</span><span class="n">st</span><span class="p">.</span><span class="n">st_size</span><span class="p">,</span><span class="w"> </span><span class="n">PROT_READ</span><span class="w"> </span><span class="o">|</span><span class="w"> </span><span class="n">PROT_WRITE</span><span class="p">,</span><span class="w"> </span><span class="n">MAP_SHARED</span><span class="p">,</span><span class="w"> </span><span class="n">fd</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="p">);</span>
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">p</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="n">MAP_FAILED</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="n">perror</span><span class="p">(</span><span class="s">&quot;mmap&quot;</span><span class="p">);</span>
+<span class="w">        </span><span class="k">return</span><span class="w"> </span><span class="n">EXIT_FAILURE</span><span class="p">;</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="w">    </span><span class="n">close</span><span class="p">(</span><span class="n">fd</span><span class="p">);</span>
+
+<span class="w">    </span><span class="k">for</span><span class="w"> </span><span class="p">(</span><span class="n">i</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span><span class="w"> </span><span class="n">i</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="n">st</span><span class="p">.</span><span class="n">st_size</span><span class="p">;</span><span class="w"> </span><span class="n">i</span><span class="o">++</span><span class="p">)</span><span class="w">                </span><span class="cm">/* write() 호출이 없다 */</span>
+<span class="w">        </span><span class="n">p</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">(</span><span class="kt">char</span><span class="p">)</span><span class="n">toupper</span><span class="p">((</span><span class="kt">unsigned</span><span class="w"> </span><span class="kt">char</span><span class="p">)</span><span class="n">p</span><span class="p">[</span><span class="n">i</span><span class="p">]);</span>
+
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">msync</span><span class="p">(</span><span class="n">p</span><span class="p">,</span><span class="w"> </span><span class="p">(</span><span class="kt">size_t</span><span class="p">)</span><span class="n">st</span><span class="p">.</span><span class="n">st_size</span><span class="p">,</span><span class="w"> </span><span class="n">MS_SYNC</span><span class="p">)</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="mi">0</span><span class="p">)</span><span class="w">  </span><span class="cm">/* Disk 까지 반영을 기다린다 */</span>
+<span class="w">        </span><span class="n">perror</span><span class="p">(</span><span class="s">&quot;msync&quot;</span><span class="p">);</span>
+<span class="w">    </span><span class="n">munmap</span><span class="p">(</span><span class="n">p</span><span class="p">,</span><span class="w"> </span><span class="p">(</span><span class="kt">size_t</span><span class="p">)</span><span class="n">st</span><span class="p">.</span><span class="n">st_size</span><span class="p">);</span>
+</code></pre></div>
+<p>쓰기 가능한 <code>MAP_SHARED</code> Mapping 은 File 을 <code>O_RDWR</code> 로 열어야 합니다. Memory 에 쓰는 것(<code>toupper</code> 결과 대입)이 곧 Page Cache 의 Page 를 바꾸는 것이고, 다른 Process 의 read() 에도 즉시 보입니다. <code>msync(MS_SYNC)</code> 는 Disk 기록까지 기다립니다(Chapter 3 L15 의 fsync 와 같은 역할). MAP_PRIVATE 였다면 쓰는 순간 COW 로 복사되어 File 은 바뀌지 않습니다.</p>
+<p><strong>빌드와 실행</strong></p><div class="hl"><pre><code class="language-bash"><span class="nb">cd</span><span class="w"> </span>~/lsp2/ch02/src/L10
+<span class="nb">echo</span><span class="w"> </span>hello<span class="w"> </span>mmap<span class="w"> </span>world<span class="w"> </span>&gt;<span class="w"> </span>note.txt
+make<span class="w"> </span>mmap_shared<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span>./mmap_shared<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span>cat<span class="w"> </span>note.txt
+</code></pre></div>
+</details>
+
+<h4 id="p10-2" class="fill">✏️ 괄호 넣기 10-2</h4>
+<ol>
+<li>File 을 Mapping 하고 쓴 내용이 File 과 다른 Process 에 반영되는 Flag 는 <input class="blank pb" data-q="p10-2" data-i="0" spellcheck="false" autocomplete="off"> , 쓰는 순간 복사본이 생겨 File 이 바뀌지 않는 Flag 는 <input class="blank pb" data-q="p10-2" data-i="1" spellcheck="false" autocomplete="off"> 이다.</li>
+<li>File 크기를 넘어선 Page 를 접근하면 Process 는 <input class="blank pb" data-q="p10-2" data-i="2" spellcheck="false" autocomplete="off"> 를 받는다.</li>
+<li>File Mapping 의 Page 는 별도 사본이 아니라 Kernel 의 <input class="blank pb" data-q="p10-2" data-i="3" spellcheck="false" autocomplete="off"> 에 있는 Page 그 자체이다.</li>
+<li><code>mmap</code> 으로 쓴 내용을 Disk 까지 확실히 기록하려면 <input class="blank pb" data-q="p10-2" data-i="4" spellcheck="false" autocomplete="off"> 를 호출한다.</li>
+</ol>
+<div class="qbar"><button class="btn check" data-q="p10-2">확인</button><button class="btn clear" data-q="p10-2">지우기</button><span class="qres" id="res-p10-2"></span></div>
+<details>
+<summary class="lock">🔒 정답 보기 10-2</summary>
+<ol><li>MAP_SHARED</li><li>MAP_PRIVATE</li><li>SIGBUS</li><li>Page Cache</li><li>msync</li></ol>
+<p>MAP_SHARED 는 쓰기가 File 에 반영되고, MAP_PRIVATE 는 COW 로 복사됩니다. Mapping 은 Page 단위라 File 끝 이후의 Page 는 접근하면 SIGBUS 입니다. File Mapping 은 Page Cache 의 Page 를 Page Table 에 직접 연결한 것이라 read() 와 같은 Data 를 봅니다. Disk 영속성은 msync(MS_SYNC)(🎬 C2-5).</p>
+</details>
+
+<blockquote><p><strong>다음</strong> — Chapter 2를 마쳤습니다. <a href="worksheet.html">Chapter 2 Worksheet</a> 20문제로 이해도를 확인하세요.</p>
+<p>이번 Chapter에서 <strong>Page Cache</strong>라는 이름이 여러 번 나왔습니다. <code>mmap</code>이 직접 연결하는 곳, 두 번째 실행이 300배 빨랐던 이유, <code>msync</code>가 Disk로 내려보내는 대상. <a href="https://imguru-mooc.github.io/adv-sysprog/ch03/lecture.html#sec1">Chapter 3 "Page Cache와 Advanced File I/O"</a>에서 <code>read()</code>와 <code>write()</code> 뒤에 있는 이 구조를 본격적으로 다룹니다.</p></blockquote>
+</section>
+</main>
+</div>
+<script>
+
+(function(){
+  document.querySelectorAll('pre').forEach(function(pre){
+    var c=pre.querySelector('code'); var m=(c&&c.className.match(/language-(\w+)/))||(pre.className.match(/language-(\w+)/));
+    pre.classList.add('lang-'+(m?m[1]:'plain'));
+    var b=document.createElement('button'); b.className='copy'; b.textContent='복사';
+    b.addEventListener('click',function(){ var t='';(function w(n){n.childNodes.forEach(function(c){ if(c.nodeType===3) t+=c.textContent; else if(c.tagName==='INPUT') t+=(c.value||'____'); else if(c.tagName==='SELECT') t+=(c.value||'____'); else if(!(c.classList&&c.classList.contains('copy'))) w(c); });})(pre.querySelector('code')||pre); navigator.clipboard.writeText(t.trim()); b.textContent='복사됨'; setTimeout(function(){b.textContent='복사'},1200); });
+    pre.appendChild(b);
+  });
+  document.querySelectorAll('li').forEach(function(li){ if(/^\[ \]/.test(li.textContent.trim())){ li.innerHTML=li.innerHTML.replace(/\[ \]\s*/,'<input type="checkbox"> '); li.style.listStyle='none'; li.style.marginLeft='-20px'; } });
+  document.querySelectorAll('h3').forEach(function(h){ if(h.textContent.indexOf('⚠')>=0) h.classList.add('trap'); });
+  var det=document.querySelectorAll('details');
+  document.getElementById('openAll').onclick=function(){det.forEach(function(d){d.open=true})};
+  document.getElementById('closeAll').onclick=function(){det.forEach(function(d){d.open=false})};
+  document.getElementById('printBtn').onclick=function(){document.body.classList.remove('print-ans');window.print()};
+  document.getElementById('printAnsBtn').onclick=function(){document.body.classList.add('print-ans');det.forEach(function(d){d.open=true});window.print()};
+  var links=[].slice.call(document.querySelectorAll('#nav a')); var secs=links.map(function(a){return document.querySelector(a.getAttribute('href'))});
+  var io=new IntersectionObserver(function(es){ es.forEach(function(e){ if(e.isIntersecting){ links.forEach(function(a){a.classList.toggle('on',a.getAttribute('href')==='#'+e.target.id)}); } }); },{rootMargin:'-20% 0px -70% 0px'});
+  secs.forEach(function(s){ if(s) io.observe(s) });
+
+  var ANS={"b6-1": [["malloc"], ["malloc"], ["free"]], "p6-2": [["VMA", "vm_area_struct", "vma"], ["VSZ", "VmSize"], ["RSS", "VmRSS"], ["Demand Paging", "demand paging"], ["ASLR"]], "b7-1": [["39"], ["30"], ["21"], ["0x1ff"], ["0xfff"]], "p7-2": [["12"], ["CR3", "cr3"], ["Present", "P", "present"], ["COW", "Copy On Write", "copy-on-write"]], "b8-1": [["MADV_NOHUGEPAGE"], ["p[i]"], ["PAGE"]], "p8-2": [["4"], ["Locality", "지역성", "locality"], ["Huge Page", "hugepage", "THP", "Transparent Huge Page"], ["PCID", "ASID", "pcid"]], "b9-1": [["mmap"], ["MAP_ANONYMOUS"], ["faults"], ["PAGE"]], "p9-2": [["CR2", "cr2"], ["Minor", "minor"], ["Major", "major"], ["SIGSEGV"], ["처음부터 다시 실행한다"]], "b10-1": [["O_RDWR"], ["MAP_SHARED"], ["toupper"], ["msync"], ["MS_SYNC"]], "p10-2": [["MAP_SHARED"], ["MAP_PRIVATE"], ["SIGBUS"], ["Page Cache", "page cache", "페이지 캐시"], ["msync"]]};
+  var KEY='lsp2-ch02-answers';
+  var store={}; try{ store=JSON.parse(localStorage.getItem(KEY)||'{}'); }catch(e){}
+  var fields=[].slice.call(document.querySelectorAll('.blank'));
+  function norm(v){ return String(v||'').trim().toLowerCase().replace(/\s+/g,' ').replace(/;$/,''); }
+  function wch(v){ var n=0; for(var c of String(v)) n+= c.charCodeAt(0)>255?2:1; return Math.max(6,n+3)+'ch'; }
+  function fid(f){ return f.dataset.q+':'+f.dataset.i; }
+  fields.forEach(function(f){ var v=store[fid(f)]; if(v!=null) f.value=v;
+    f.addEventListener('input',function(){ store[fid(f)]=f.value; try{localStorage.setItem(KEY,JSON.stringify(store));}catch(e){} f.classList.remove('ok','ng'); document.getElementById('res-'+f.dataset.q).textContent=''; tally(); });
+    if(f.tagName==='INPUT') f.addEventListener('input',function(){ f.style.width=wch(f.value); });
+    f.addEventListener('keydown',function(e){ if(e.key==='Enter'){ e.preventDefault(); check(f.dataset.q); } });
+  });
+  function check(q){
+    var fs=fields.filter(function(f){return f.dataset.q===q}); var ok=0;
+    fs.forEach(function(f){ var i=+f.dataset.i; var good=(ANS[q][i]||[]).some(function(a){return norm(a)===norm(f.value)});
+      f.classList.toggle('ok',good); f.classList.toggle('ng',!good); if(good) ok++; store['ok:'+fid(f)]=good; });
+    try{localStorage.setItem(KEY,JSON.stringify(store));}catch(e){}
+    var r=document.getElementById('res-'+q); r.textContent= ok===fs.length ? '모두 맞았습니다 ('+ok+'/'+fs.length+')' : ok+' / '+fs.length+' 맞음 — 빨간 칸을 다시 생각해 보세요';
+    r.className='qres '+(ok===fs.length?'ok':'ng'); tally();
+  }
+  function tally(){ var done=fields.filter(function(f){return norm(f.value)}).length; var ok=fields.filter(function(f){return f.classList.contains('ok')}).length;
+    document.getElementById('scoreDone').textContent=done; document.getElementById('scoreTot').textContent=fields.length; document.getElementById('scoreOk').textContent=ok; }
+  document.querySelectorAll('.qbar .check').forEach(function(b){ b.addEventListener('click',function(){ check(b.dataset.q); }); });
+  document.querySelectorAll('.qbar .clear').forEach(function(b){ b.addEventListener('click',function(){ fields.filter(function(f){return f.dataset.q===b.dataset.q}).forEach(function(f){ f.value=''; f.classList.remove('ok','ng'); delete store[fid(f)]; delete store['ok:'+fid(f)]; if(f.tagName==='INPUT') f.style.width=''; }); try{localStorage.setItem(KEY,JSON.stringify(store));}catch(e){} document.getElementById('res-'+b.dataset.q).textContent=''; tally(); }); });
+  fields.forEach(function(f){ if(store['ok:'+fid(f)]===true) f.classList.add('ok'); if(f.tagName==='INPUT'&&f.value) f.style.width=wch(f.value); });
+  tally();
+})();
+
+</script>
+</body>
+</html>

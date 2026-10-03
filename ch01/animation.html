@@ -1,0 +1,560 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>고급 Linux System Programming II · Chapter 1 — 눈으로 보는 5가지 (System Call · ELF · Loader · execve)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper:#EEF1F5;
+    --panel:#FFFFFF;
+    --ink:#1B2A41;
+    --ink-soft:#5B6B80;
+    --line:#C9D1DC;
+    --blue:#2457C5;
+    --blue-soft:#DCE6FA;
+    --red:#D6452E;
+    --red-soft:#FBE3DF;
+    --green:#178A67;
+    --green-soft:#DDF2EA;
+    --amber:#C98A12;
+    --amber-soft:#FBF0D3;
+    --mono:'IBM Plex Mono', ui-monospace, 'Cascadia Mono', Consolas, monospace;
+    --sans:'IBM Plex Sans KR', 'Pretendard', 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif;
+    --t:.35s;
+  }
+  @media (prefers-reduced-motion: reduce){ :root{ --t:0s; } *{ animation:none !important; transition:none !important; } }
+
+  *{ box-sizing:border-box; }
+  html,body{ margin:0; height:100%; }
+  body{
+    font-family:var(--sans); color:var(--ink); background:var(--paper);
+    background-image:
+      linear-gradient(rgba(27,42,65,.045) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(27,42,65,.045) 1px, transparent 1px);
+    background-size:24px 24px;
+    font-size:16px; line-height:1.55;
+  }
+  code, .mono{ font-family:var(--mono); }
+
+  .app{ display:grid; grid-template-columns:260px 1fr; min-height:100vh; }
+  nav{
+    background:var(--ink); color:#fff; padding:28px 20px;
+    position:sticky; top:0; height:100vh; overflow:auto;
+  }
+  nav h1{ font-size:15px; font-weight:500; margin:0 0 4px; letter-spacing:.01em; color:#AEBBD1; }
+  nav .day{ font-size:26px; font-weight:600; margin:0 0 26px; line-height:1.2; }
+  nav ol{ list-style:none; margin:0; padding:0; counter-reset:lesson; }
+  nav li{ margin:0; }
+  nav button{
+    all:unset; display:grid; grid-template-columns:32px 1fr; gap:10px; align-items:baseline;
+    width:100%; padding:9px 10px; border-radius:6px; cursor:pointer; font-size:14.5px; line-height:1.35;
+    color:#D9E1EC;
+  }
+  nav button::before{ counter-increment:lesson; content:"L0" counter(lesson); font-family:var(--mono); font-size:11px; color:#8A9BB5; }
+  nav button:hover{ background:rgba(255,255,255,.07); }
+  nav button[aria-current="true"]{ background:var(--blue); color:#fff; }
+  nav button[aria-current="true"]::before{ color:#C9D8F7; }
+  nav button:focus-visible{ outline:2px solid #fff; outline-offset:2px; }
+  nav .hint{ margin-top:28px; font-size:12.5px; color:#8A9BB5; line-height:1.5; }
+  nav .hint kbd{ font-family:var(--mono); background:rgba(255,255,255,.12); padding:1px 5px; border-radius:3px; }
+
+  main{ padding:36px 44px 80px; max-width:1100px; }
+  section.lesson{ display:none; }
+  section.lesson.active{ display:block; }
+  .lesson header{ margin-bottom:22px; }
+  .lesson h2{ font-size:30px; font-weight:600; margin:0 0 6px; line-height:1.25; }
+  .lesson header p{ margin:0; color:var(--ink-soft); font-size:16px; max-width:64ch; }
+
+  .stage{
+    background:var(--panel); border:1px solid var(--line); border-radius:10px; padding:26px;
+    box-shadow:0 1px 0 rgba(27,42,65,.06);
+  }
+  .controls{ display:flex; flex-wrap:wrap; gap:10px; align-items:center; margin-bottom:20px; }
+  .controls label{ font-size:14px; color:var(--ink-soft); display:flex; align-items:center; gap:6px; }
+  button.btn{
+    font:inherit; font-size:14px; font-weight:500; padding:8px 14px; border-radius:6px; cursor:pointer;
+    border:1px solid var(--ink); background:var(--ink); color:#fff;
+  }
+  button.btn.secondary{ background:#fff; color:var(--ink); border-color:var(--line); }
+  button.btn:disabled{ opacity:.4; cursor:default; }
+  button.btn:focus-visible, select:focus-visible, input:focus-visible{ outline:2px solid var(--blue); outline-offset:2px; }
+  select, input[type=number], input[type=text]{
+    font:inherit; font-size:14px; padding:7px 10px; border:1px solid var(--line); border-radius:6px; background:#fff; color:var(--ink);
+  }
+  input[type=number], input[type=text]{ font-family:var(--mono); }
+  .toggle{ display:inline-flex; align-items:center; gap:8px; cursor:pointer; user-select:none; }
+  .toggle input{ position:absolute; opacity:0; width:0; height:0; }
+  .toggle .sw{ width:38px; height:22px; border-radius:11px; background:var(--line); position:relative; transition:background var(--t); }
+  .toggle .sw::after{ content:""; position:absolute; top:3px; left:3px; width:16px; height:16px; border-radius:50%; background:#fff; transition:transform var(--t); }
+  .toggle input:checked + .sw{ background:var(--blue); }
+  .toggle input:checked + .sw::after{ transform:translateX(16px); }
+  .toggle input:focus-visible + .sw{ outline:2px solid var(--blue); outline-offset:2px; }
+
+  .note{ margin-top:18px; padding:14px 16px; border-left:3px solid var(--blue); background:var(--blue-soft); border-radius:0 6px 6px 0; font-size:14.5px; }
+  .note.warn{ border-color:var(--red); background:var(--red-soft); }
+  .note.ok{ border-color:var(--green); background:var(--green-soft); }
+  .note code{ background:rgba(255,255,255,.7); padding:1px 5px; border-radius:3px; }
+
+  pre.code{
+    font-family:var(--mono); font-size:13.5px; background:#F6F8FB; border:1px solid var(--line); border-radius:6px;
+    padding:14px 16px; margin:0; overflow:auto; line-height:1.55; white-space:pre;
+  }
+  pre.code .dim{ color:#9AA7B8; }
+  pre.code .hi{ background:var(--amber-soft); }
+  pre.code .err{ background:var(--red-soft); color:var(--red); }
+
+    .readout{ display:grid; grid-template-columns:repeat(auto-fit,minmax(170px,1fr)); gap:12px; margin-top:16px; }
+  .readout div{ padding:12px 14px; border:1px solid var(--line); border-radius:6px; background:#F6F8FB; }
+  .readout b{ display:block; font-size:12.5px; font-weight:500; color:var(--ink-soft); margin-bottom:2px; }
+  .readout span{ font-family:var(--mono); font-size:17px; font-weight:600; }
+  /* ---------- shared ---------- */
+  .mcell{ display:inline-flex; flex-direction:column; align-items:center; min-width:70px; border:2px solid var(--ink); border-radius:6px; background:#fff; overflow:hidden; transition:all var(--t); }
+  .mcell .a{ font-family:var(--mono); font-size:10px; color:var(--ink-soft); background:#F6F8FB; width:100%; text-align:center; padding:3px 4px; border-bottom:1px solid var(--line); }
+  .mcell .v{ font-family:var(--mono); font-size:20px; font-weight:600; padding:8px 6px; }
+  .mcell .n{ font-family:var(--mono); font-size:11px; color:var(--blue); padding:0 4px 6px; }
+  .mcell.hi{ border-color:var(--blue); background:var(--blue-soft); }
+  .mcell.bad{ border-color:var(--red); background:var(--red-soft); }
+  .mcell.ok{ border-color:var(--green); background:var(--green-soft); }
+  .mcell.dim{ opacity:.35; }
+  .row{ display:flex; gap:10px; flex-wrap:wrap; align-items:flex-end; }
+  .lab{ font-size:12.5px; color:var(--ink-soft); margin:14px 0 6px; }
+  .term{ font-family:var(--mono); font-size:13.5px; background:var(--ink); color:#D9E1EC; padding:12px 16px; border-radius:6px; min-height:60px; white-space:pre-wrap; margin-top:16px; }
+  .term .r{ color:#FF9B8A; } .term .g{ color:#7FE0B8; } .term .y{ color:#FFD27F; } .term .c{ color:#8A9BB5; }
+  svg text{ font-family:var(--mono); }
+  .shake{ animation:shake .4s; } @keyframes shake{ 0%,100%{transform:none} 25%{transform:translateX(-5px)} 75%{transform:translateX(5px)} }
+  .pop-in{ animation:popin .3s ease-out; } @keyframes popin{ from{ transform:scale(.8); opacity:0; } }
+  .fade-out{ animation:fadeout .4s forwards; } @keyframes fadeout{ to{ opacity:0; transform:translateY(-8px); } }
+  .two{ display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:24px; }
+  .tabs2{ display:flex; gap:6px; flex-wrap:wrap; }
+  .tabs2 button{ font:inherit; font-size:13px; padding:7px 12px; border-radius:6px; border:1px solid var(--line); background:#fff; cursor:pointer; }
+  .tabs2 button.on{ background:var(--ink); color:#fff; border-color:var(--ink); }
+  .fig svg{ width:100%; height:auto; background:#fff; border:1px solid var(--line); border-radius:6px; display:block; }
+  .fig text{ font-size:11px; fill:var(--ink-soft); }
+  .qslots{ display:flex; gap:6px; margin:10px 0; }
+  .qslots span{ flex:1; height:46px; border:2px solid var(--line); border-radius:6px; display:grid; place-items:center; font-family:var(--mono); font-size:13px; background:#fff; transition:all var(--t); }
+  .qslots span.full{ background:var(--blue-soft); border-color:var(--blue); }
+  .fs{ display:grid; grid-template-columns:repeat(16,1fr); gap:3px; }
+  .fs span{ height:22px; border-radius:3px; background:#EEF1F5; transition:background var(--t); }
+  .fs span.used{ background:#8FB0EA; } .fs span.dirty{ background:var(--amber); } .fs span.hot{ outline:2px solid var(--red); }
+  .crash{ font-family:var(--mono); font-size:12.5px; background:#0E1726; color:#D9E1EC; border-radius:8px; padding:12px 14px; line-height:1.7; }
+  .crash span.ln{ display:block; cursor:pointer; border-radius:3px; padding:0 4px; }
+  .crash span.ln:hover{ background:#22324A; } .crash span.ln.on{ background:#3A2A10; color:#FFD27A; }
+  .flow{ position:relative; }
+  table.rt{ border-collapse:collapse; width:100%; font-family:var(--mono); font-size:12.5px; }
+  table.rt th, table.rt td{ border:1px solid var(--line); padding:6px 8px; text-align:left; }
+  table.rt th{ background:var(--paper); font-family:var(--sans); }
+  table.rt tr.hot td{ background:var(--blue-soft); font-weight:700; }
+  @media (max-width:900px){ .two{ grid-template-columns:1fr; } }
+  @media (max-width:860px){ .app{ display:block; } nav{ position:static; height:auto; } main{ padding:20px 12px 60px; } .stage{ padding:16px; } }
+</style>
+</head>
+<body>
+<div class="app">
+  <nav aria-label="Lecture 선택">
+    <h1>고급 Linux System Programming II</h1>
+    <p class="day">Chapter 1<br>눈으로 보는 5가지</p>
+    <ol id="navlist">
+      <li><button data-go="1" aria-current="true">User ↔ Kernel Mode</button></li>
+      <li><button data-go="2">System Call Entry</button></li>
+      <li><button data-go="3">ELF Explorer</button></li>
+      <li><button data-go="4">PLT / GOT</button></li>
+      <li><button data-go="5">execve → main</button></li>
+    </ol>
+    <p class="hint">키보드 <kbd>←</kbd> <kbd>→</kbd> 로 Lecture 이동<br><kbd>Space</kbd> 한 단계</p>
+    <p class="hint">강의 자료: <a href="lecture.html" style="color:#C9D8F7">lecture.html</a><br>워크시트: <a href="worksheet.html" style="color:#C9D8F7">worksheet.html</a></p>
+  </nav>
+  <main>
+
+  <!-- ================= L1 ================= -->
+  <section class="lesson active" id="l1">
+    <header><h2>C1-1 · 이 함수는 Kernel 까지 내려가는가</h2><p>함수를 고르고 한 단계씩 넘겨 보세요. CPU Mode 가 Ring 3 에서 Ring 0 로 바뀌는 순간이 System Call 입니다. strlen 은 끝까지 Ring 3 에 머물고, hlt 는 CPU 가 거부합니다.</p></header>
+    <div class="stage">
+      <div class="controls">
+        <div class="tabs2" id="u-fn"><button class="on" data-f="printf">printf("hello\n")</button><button data-f="write">write(1, "hello\n", 6)</button><button data-f="strlen">strlen("hello")</button><button data-f="hlt">hlt (특권 명령)</button></div>
+      </div>
+      <div class="controls">
+        <button class="btn" id="u-step">한 단계</button>
+        <button class="btn" id="u-all">끝까지</button>
+        <button class="btn secondary" id="u-reset">처음으로</button>
+      </div>
+      <div class="fig"><svg viewBox="0 0 860 300" id="u-svg"></svg></div>
+      <div class="readout"><div><b>CPU Mode</b><span id="u-mode">Ring 3 (User)</span></div><div><b>Kernel 진입 횟수</b><span id="u-cnt">0</span></div><div><b>단계</b><span id="u-pos">0 / 0</span></div></div>
+      <div class="two" style="margin-top:4px">
+        <div><div class="lab">strace 로 보면</div><div class="term" id="u-term" style="margin-top:0;min-height:84px"></div></div>
+        <div><div class="lab">지금 일어나는 일</div><div class="note" id="u-note" style="margin-top:0"></div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= L2 ================= -->
+  <section class="lesson" id="l2">
+    <header><h2>C1-2 · syscall 명령 하나가 하는 일</h2><p>System Call 을 고르고 한 단계씩 넘기며 오른쪽 Register 표를 보세요. 이번 단계에서 바뀐 Register 는 파란색으로 표시됩니다. syscall 명령 단계에서 rcx, r11, rip, CPL 이 동시에 바뀝니다.</p></header>
+    <div class="stage">
+      <div class="controls">
+        <label style="flex-wrap:wrap;max-width:100%">System Call <select id="s-sel" style="max-width:100%">
+          <option value="write">write(1, "REGISTER\n", 9)</option>
+          <option value="getpid">getpid()</option>
+          <option value="openat">openat(AT_FDCWD, "/etc/hostname", O_RDONLY)</option>
+          <option value="bad">write(99, "x", 1) — 잘못된 fd</option>
+          <option value="vdso">clock_gettime() — vDSO</option>
+        </select></label>
+        <button class="btn" id="s-step">한 단계</button>
+        <button class="btn secondary" id="s-reset">처음으로</button>
+      </div>
+      <div class="two">
+        <div>
+          <div class="lab" style="margin-top:0">실행 위치</div>
+          <div id="s-flow"></div>
+          <div class="note" id="s-note"></div>
+        </div>
+        <div>
+          <div class="lab" style="margin-top:0">Register</div>
+          <table class="rt" id="s-reg"></table>
+          <div class="readout"><div><b>CPL</b><span id="s-cpl">3</span></div><div><b>Stack</b><span id="s-stk">User</span></div><div><b>단계</b><span id="s-pos">0 / 0</span></div></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= L3 ================= -->
+  <section class="lesson" id="l3">
+    <header><h2>C1-3 · 같은 ELF, 두 개의 목차</h2><p>Section 관점은 Linker 와 Debugger 가, Segment 관점은 Kernel 과 Loader 가 읽는 목차입니다. 조각을 눌러 정보를 보고, 관점을 바꿔 보세요. 마지막으로 Kernel Loading 을 한 단계씩 실행해 .bss 가 Memory 쪽에만 생기는 것을 확인합니다.</p></header>
+    <div class="stage">
+      <div class="controls">
+        <div class="tabs2" id="e-view"><button class="on" data-v="sec">Section 관점 (readelf -S)</button><button data-v="seg">Segment 관점 (readelf -l)</button></div>
+        <button class="btn" id="e-step">Kernel Loading 한 단계</button>
+        <button class="btn secondary" id="e-reset">처음으로</button>
+      </div>
+      <div class="two">
+        <div><div class="lab" style="margin-top:0">File: sections (17,840 Byte, Offset 순)</div><div id="e-file"></div></div>
+        <div><div class="lab" style="margin-top:0">Memory: 주소 공간 (주소 순)</div><div id="e-mem"></div></div>
+      </div>
+      <div class="note" id="e-note"></div>
+    </div>
+  </section>
+
+  <!-- ================= L4 ================= -->
+  <section class="lesson" id="l4">
+    <header><h2>C1-4 · GOT 칸은 언제 채워지는가</h2><p>main_lazy 가 greet() 를 두 번 호출합니다. 호출 경로를 한 단계씩 따라가며 GOT 칸의 값이 바뀌는 단계를 찾으세요. BIND_NOW 로 바꾸면 main 이전에 이미 채워져 있고, 읽기 전용이 됩니다.</p></header>
+    <div class="stage">
+      <div class="controls">
+        <div class="tabs2" id="p-mode"><button class="on" data-m="lazy">Lazy Binding (-z lazy)</button><button data-m="now">BIND_NOW + RELRO (Ubuntu 기본)</button></div>
+      </div>
+      <div class="controls">
+        <button class="btn" id="p-step">한 단계</button>
+        <button class="btn secondary" id="p-attack">공격 흉내: GOT 덮어쓰기</button>
+        <button class="btn secondary" id="p-reset">처음으로</button>
+      </div>
+      <div class="row" id="p-cells" style="margin-bottom:8px"></div>
+      <div class="two">
+        <div><div class="lab">호출 경로</div><div id="p-path"></div></div>
+        <div>
+          <div class="readout" style="margin-top:0"><div><b>1번째 호출 단계 수</b><span id="p-c1">–</span></div><div><b>2번째 호출 단계 수</b><span id="p-c2">–</span></div><div><b>GOT 권한</b><span id="p-perm">RW</span></div></div>
+          <div class="term" id="p-term" style="min-height:96px"></div>
+        </div>
+      </div>
+      <div class="note" id="p-note"></div>
+    </div>
+  </section>
+
+  <!-- ================= L5 ================= -->
+  <section class="lesson" id="l5">
+    <header><h2>C1-5 · execve 에서 main 까지, 그리고 exit 까지</h2><p>실행 File 종류를 고르고 한 단계씩 넘기세요. 위쪽은 지금 실행 중인 주체, 오른쪽은 주소 공간에 Mapping 된 영역, 아래는 그 순간 strace 에 찍히는 줄입니다. Static 으로 바꾸면 어떤 단계가 사라지는지 비교하세요.</p></header>
+    <div class="stage">
+      <div class="controls">
+        <div class="tabs2" id="x-kind"><button class="on" data-k="dyn">Dynamic (PIE, 기본)</button><button data-k="static">Static (-static)</button></div>
+        <button class="btn" id="x-step">한 단계</button>
+        <button class="btn" id="x-all">끝까지</button>
+        <button class="btn secondary" id="x-reset">처음으로</button>
+      </div>
+      <div class="row" id="x-who" style="margin-bottom:10px"></div>
+      <div class="two">
+        <div>
+          <div class="lab" style="margin-top:0">지금 일어나는 일 <span id="x-pos" class="mono" style="float:right"></span></div>
+          <div class="note" id="x-note" style="margin-top:0"></div>
+          <div class="lab">strace</div>
+          <div class="term" id="x-term" style="margin-top:0;min-height:120px"></div>
+        </div>
+        <div>
+          <div class="lab" style="margin-top:0">Memory Map (/proc/PID/maps)</div>
+          <table class="rt" id="x-map"></table>
+          <div class="readout"><div><b>System Call 수</b><span id="x-sc">0</span></div><div><b>main 실행</b><span id="x-main">아직</span></div></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  </main>
+</div>
+
+<script>
+(function(){
+  'use strict';
+  const $=(s,r=document)=>r.querySelector(s), $$=(s,r=document)=>Array.from(r.querySelectorAll(s));
+  const NS='http://www.w3.org/2000/svg';
+  const el=(n,a,t)=>{ const e=document.createElementNS(NS,n); for(const k in a) e.setAttribute(k,a[k]); if(t!==undefined) e.textContent=t; return e; };
+  const esc=s=>String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;');
+  const MAXL=5; let cur=1;
+  function go(n){ cur=Math.max(1,Math.min(MAXL,n)); $$('.lesson').forEach(s=>s.classList.toggle('active',s.id==='l'+cur)); $$('#navlist button').forEach(b=>b.setAttribute('aria-current',b.dataset.go==cur?'true':'false')); history.replaceState(null,'','#l'+cur); window.scrollTo({top:0}); }
+  $$('#navlist button').forEach(b=>b.addEventListener('click',()=>go(+b.dataset.go)));
+  const stepKeys={1:'#u-step',2:'#s-step',3:'#e-step',4:'#p-step',5:'#x-step'};
+  document.addEventListener('keydown',e=>{ if(['INPUT','SELECT','TEXTAREA'].includes(document.activeElement.tagName))return; if(e.key==='ArrowRight')go(cur+1); if(e.key==='ArrowLeft')go(cur-1); if(e.key===' '){ e.preventDefault(); const b=$(stepKeys[cur]); if(b&&!b.disabled) b.click(); } });
+  if(/^#l[1-5]$/.test(location.hash)) go(+location.hash[2]);
+  function tabs(id,fn){ $$('#'+id+' button').forEach(b=>b.addEventListener('click',()=>{ $$('#'+id+' button').forEach(x=>x.classList.toggle('on',x===b)); fn(b); })); }
+  function box(S,x,y,w,h,title,sub,kind,id){ const col={n:['#fff','#1B2A41'],b:['#DCE6FA','#2457C5'],g:['#DDF2EA','#178A67'],r:['#FBE3DF','#D6452E'],a:['#FBF0D3','#C98A12'],d:['#F6F8FB','#C9D1DC']}[kind||'n'];
+    const g=el('g',id?{id}:{}); g.appendChild(el('rect',{x,y,width:w,height:h,rx:8,fill:col[0],stroke:col[1],'stroke-width':2}));
+    g.appendChild(el('text',{x:x+w/2,y:y+(sub?h/2-4:h/2+5),'text-anchor':'middle','font-size':13.5,'font-weight':600,fill:'#1B2A41'},title));
+    if(sub) g.appendChild(el('text',{x:x+w/2,y:y+h/2+14,'text-anchor':'middle','font-size':11,fill:'#5B6B80'},sub));
+    S.appendChild(g); return g; }
+  function note(id,html,kind){ const n=$(id); n.className='note'+(kind?' '+kind:''); n.innerHTML=html; }
+
+  /* ======================= L1 User ↔ Kernel ======================= */
+  const U={fn:'printf',i:0};
+  const UBOX={main:[30,60,150,58,'main()','내 코드'],lib:[210,60,170,58,'libc 함수','printf / strlen'],wrap:[410,60,170,58,'glibc Wrapper','write()'],ins:[610,60,210,58,'syscall 명령','rax=1 rdi rsi rdx'],
+    entry:[30,200,190,58,'entry_SYSCALL_64','Kernel 입구'],hand:[250,200,190,58,'__x64_sys_write','ksys_write → vfs_write'],dev:[470,200,170,58,'tty Driver','화면 출력'],trap:[670,200,160,58,'Exception 처리','#GP → SIGSEGV']};
+  const USTEPS={
+    printf:[
+      ['main','r3','<code>main()</code> 이 <code>printf("hello\\n")</code> 를 호출합니다. 일반 함수 호출이며 CPU 는 Ring 3 입니다.'],
+      ['lib','r3','libc 의 printf 가 문자열을 만들어 <b>stdio Buffer</b> 에 넣습니다. 출력 대상이 Terminal 인지 확인하려고 <code>fstat(1)</code> 을 한 번 부릅니다(첫 호출 때).','fstat(1, {st_mode=S_IFCHR|0620, ...}) = 0'],
+      ['wrap','r3','줄 끝(\\n)을 만났고 Terminal 이므로 Buffer 를 비웁니다(줄 단위 Buffering). glibc 의 <code>write()</code> Wrapper 가 호출됩니다. <b>아직 Ring 3</b>, 이것도 C 함수일 뿐입니다.'],
+      ['ins','r3','Wrapper 가 Register 를 채웁니다: <code>rax=1</code>(write 번호), <code>rdi=1</code>, <code>rsi=버퍼 주소</code>, <code>rdx=6</code>. 그리고 <code>syscall</code> 명령을 실행합니다.'],
+      ['entry','r0','<b>여기서 CPU Mode 가 Ring 0 로 바뀝니다.</b> CPU 가 Kernel 이 등록해 둔 단 하나의 입구로 점프했습니다. 이 순간이 strace 가 기록하는 System Call 경계입니다.',null,true],
+      ['hand','r0','번호 1 로 분기해 Kernel 의 write 처리 함수가 실행됩니다. 장치는 모든 Process 가 공유하므로 Kernel 만 다룰 수 있습니다.'],
+      ['dev','r0','tty Driver 가 화면에 <code>hello</code> 를 씁니다.'],
+      ['wrap','r3','<code>sysret</code> 으로 Ring 3 로 복귀합니다. 결과값 6(쓴 Byte 수)이 rax 로 돌아오고 Wrapper → printf → main 순으로 return 합니다.','write(1, "hello\\n", 6)                  = 6'],
+    ],
+    write:[
+      ['main','r3','<code>main()</code> 이 <code>write(1, "hello\\n", 6)</code> 를 직접 호출합니다. stdio Buffer 를 거치지 않습니다.'],
+      ['wrap','r3','<code>write()</code> 는 Kernel 함수가 아니라 glibc 의 <b>Wrapper</b> 입니다. Kernel 은 write 라는 이름을 모르고 <b>번호 1</b> 만 압니다.'],
+      ['ins','r3','<code>rax=1, rdi=1, rsi=msg, rdx=6</code> 을 채우고 <code>syscall</code> 명령을 실행합니다.'],
+      ['entry','r0','<b>Ring 3 → Ring 0.</b> Kernel 입구 <code>entry_SYSCALL_64</code> 에 도착했습니다.',null,true],
+      ['hand','r0','<code>do_syscall_64</code> 가 번호를 검사하고 write 처리 함수로 분기합니다.'],
+      ['dev','r0','tty Driver 가 출력합니다.'],
+      ['main','r3','<code>sysret</code> 으로 Ring 3 복귀. rax = 6. printf 보다 단계가 적지만 Kernel 진입은 똑같이 1번입니다.','write(1, "hello\\n", 6)                  = 6'],
+    ],
+    strlen:[
+      ['main','r3','<code>main()</code> 이 <code>strlen("hello")</code> 를 호출합니다.'],
+      ['lib','r3','libc 의 strlen 이 내 Process 의 Memory 를 한 Byte 씩(실제로는 SIMD 로 여러 Byte 씩) 읽어 0 을 찾습니다.'],
+      ['lib','r3','다섯 글자 뒤에서 <code>\\0</code> 을 찾았습니다. <b>내 Process 바깥의 자원을 하나도 건드리지 않았으므로</b> Kernel 에 부탁할 일이 없습니다.'],
+      ['main','r3','5 를 return 합니다. 끝까지 Ring 3. strace 에는 아무것도 찍히지 않습니다. (libonly 실습: 300만 번 호출해도 System Call 수는 그대로)'],
+    ],
+    hlt:[
+      ['main','r3','<code>main()</code> 이 Inline Assembly 로 <code>hlt</code>(CPU 정지) 명령을 직접 실행하려 합니다. "부탁하지 말고 직접 하면?"'],
+      ['ins','r3','CPU 는 현재 코드의 Privilege Level(CPL=3)을 압니다. <code>hlt</code> 는 Ring 0 에서만 허용된 <b>특권 명령</b>입니다.'],
+      ['trap','r0','CPU 가 실행을 거부하고 <b>General Protection Fault</b> Exception 을 일으킵니다. Exception 도 Ring 0 로 가는 경로입니다(System Call, Exception, Interrupt).',null,true],
+      ['trap','r0','Kernel 의 Exception Handler 가 원인 Process 에 <code>SIGSEGV</code> 를 보냅니다. 이 보호는 Software 검사가 아니라 <b>CPU Hardware 가 강제</b>합니다.','--- SIGSEGV {si_signo=SIGSEGV, si_code=SI_KERNEL, si_addr=NULL} ---'],
+      ['main','dead','Process 가 종료됩니다. dmesg 에 <code>traps: priv[…] general protection fault</code> 가 남습니다.','+++ killed by SIGSEGV (core dumped) +++'],
+    ]};
+  function uDraw(){
+    const S=$('#u-svg'); S.innerHTML='';
+    S.appendChild(el('rect',{x:10,y:20,width:840,height:118,rx:10,fill:'#F6F8FB',stroke:'#C9D1DC'}));
+    S.appendChild(el('text',{x:24,y:40,'font-size':12,fill:'#2457C5','font-weight':600},'User Space · Ring 3'));
+    S.appendChild(el('rect',{x:10,y:162,width:840,height:118,rx:10,fill:'#F3EEFB',stroke:'#C9D1DC'}));
+    S.appendChild(el('text',{x:24,y:182,'font-size':12,fill:'#7A3E9D','font-weight':600},'Kernel Space · Ring 0'));
+    S.appendChild(el('line',{x1:10,y1:150,x2:850,y2:150,stroke:'#D6452E','stroke-width':2,'stroke-dasharray':'6 5'}));
+    S.appendChild(el('text',{x:690,y:146,'font-size':11,fill:'#D6452E'},'System Call 경계'));
+    const steps=USTEPS[U.fn]; const visited=new Set(steps.slice(0,U.i).map(s=>s[0])); const now=U.i>0?steps[U.i-1][0]:null;
+    for(const k in UBOX){ const b=UBOX[k]; let kind='d'; if(visited.has(k)) kind='n'; if(k===now) kind=(steps[U.i-1][1]==='dead'?'r':(steps[U.i-1][1]==='r0'?'a':'b')); if(k==='trap'&&U.fn!=='hlt') kind='d'; box(S,b[0],b[1],b[2],b[3],b[4],b[5],kind); }
+  }
+  function uRender(){
+    const steps=USTEPS[U.fn]; uDraw();
+    let mode='Ring 3 (User)', cnt=0, term=[];
+    steps.slice(0,U.i).forEach(s=>{ if(s[4]) cnt++; if(s[3]) term.push(s[3]); });
+    if(U.i>0){ const s=steps[U.i-1]; mode=s[1]==='r0'?'Ring 0 (Kernel)':(s[1]==='dead'?'(Process 종료)':'Ring 3 (User)'); }
+    $('#u-mode').textContent=mode; $('#u-mode').style.color=mode.startsWith('Ring 0')?'#C98A12':(mode.startsWith('(')?'#D6452E':'#2457C5');
+    $('#u-cnt').textContent=cnt; $('#u-pos').textContent=U.i+' / '+steps.length;
+    $('#u-term').innerHTML=term.length?term.map(t=>'<span class="'+(t.startsWith('+++')||t.startsWith('---')?'r':'g')+'">'+esc(t)+'</span>').join('\n'):'<span class="c">(아직 System Call 없음)</span>';
+    if(U.i===0) note('#u-note','<b>한 단계</b> 를 눌러 시작하세요. 예측: 이 함수는 Kernel 에 몇 번 진입할까요?');
+    else note('#u-note','<b>'+U.i+'.</b> '+steps[U.i-1][2], steps[U.i-1][1]==='dead'?'warn':(U.i===steps.length?'ok':''));
+    $('#u-step').disabled=$('#u-all').disabled=U.i>=steps.length;
+  }
+  tabs('u-fn',b=>{ U.fn=b.dataset.f; U.i=0; uRender(); });
+  $('#u-step').onclick=()=>{ U.i++; uRender(); };
+  $('#u-all').onclick=()=>{ U.i=USTEPS[U.fn].length; uRender(); };
+  $('#u-reset').onclick=()=>{ U.i=0; uRender(); };
+  uRender();
+
+  /* ======================= L2 System Call Entry ======================= */
+  const SC={write:{nr:1,args:['1','0x5555…6004','9'],ret:'9',name:'__x64_sys_write',impl:'ksys_write → vfs_write → tty',strace:'write(1, "REGISTER\\n", 9) = 9'},
+    getpid:{nr:39,args:['–','–','–'],ret:'2467',name:'__x64_sys_getpid',impl:'current->tgid 를 읽어 반환',strace:'getpid() = 2467'},
+    openat:{nr:257,args:['-100 (AT_FDCWD)','0x5555…6010','0 (O_RDONLY)'],ret:'3',name:'__x64_sys_openat',impl:'do_sys_open → 경로 탐색 → fd 할당',strace:'openat(AT_FDCWD, "/etc/hostname", O_RDONLY) = 3'},
+    bad:{nr:1,args:['99','0x5555…6004','1'],ret:'-9',name:'__x64_sys_write',impl:'fdget(99) 실패 → -EBADF',strace:'write(99, "x", 1) = -1 EBADF (Bad file descriptor)'}};
+  const S2={k:'write',i:0};
+  const REGS=['rax','rdi','rsi','rdx','r10','rcx','r11','rip','rsp'];
+  function s2Steps(k){
+    if(k==='vdso') return [
+      {loc:'user',t:'glibc clock_gettime()',r:{rip:'clock_gettime'},n:'glibc 의 <code>clock_gettime()</code> 이 호출됩니다. man 2 에 있는 System Call 입니다.'},
+      {loc:'user',t:'[vdso] __vdso_clock_gettime',r:{rip:'[vdso]+0x…'},n:'glibc 는 syscall 명령 대신 Kernel 이 모든 Process 에 Mapping 해 준 <code>[vdso]</code> 안의 함수를 <b>일반 함수처럼 call</b> 합니다.'},
+      {loc:'user',t:'[vvar] 읽기',r:{rax:'0'},n:'vDSO 함수는 Kernel 이 계속 갱신하는 읽기 전용 Page <code>[vvar]</code> 의 시간 값을 읽어 계산만 합니다.'},
+      {loc:'user',t:'return 0',r:{},n:'<b>CPL 은 끝까지 3</b>. Kernel 에 진입하지 않았으므로 strace 에 잡히지 않고, 비용도 수십 ns 입니다(syscall 은 수백 ns).',ok:true}];
+    const c=SC[k]; const errno=k==='bad';
+    return [
+      {loc:'user',t:'glibc Wrapper',r:{rax:String(c.nr)},n:'glibc Wrapper 가 System Call 번호 <code>'+c.nr+'</code> 을 <b>rax</b> 에 넣습니다. Kernel 은 이름이 아니라 이 번호로 요청을 구분합니다.'},
+      {loc:'user',t:'glibc Wrapper',r:{rdi:c.args[0],rsi:c.args[1],rdx:c.args[2]},n:'인자는 <b>rdi, rsi, rdx</b> (4~6번째는 r10, r8, r9) 에 넣습니다. Stack 이 아니라 Register 입니다.'},
+      {loc:'cpu',t:'syscall 명령',r:{rcx:'(복귀 주소)',r11:'(RFLAGS)',rip:'entry_SYSCALL_64'},cpl:0,n:'<b>syscall 명령 하나</b>가 CPU Hardware 로 한 번에: <code>rcx ← rip</code>, <code>r11 ← rflags</code>, <code>rip ← MSR_LSTAR</code>, CPL 3 → 0. 입구 주소는 MSR_LSTAR 에 적힌 한 곳뿐입니다.'},
+      {loc:'kernel',t:'entry_SYSCALL_64',r:{rsp:'Kernel Stack'},cpl:0,stk:'Kernel',n:'Assembly 입구에서 User Stack 을 Kernel Stack 으로 바꾸고, Register 를 <code>pt_regs</code> 구조체로 저장합니다. rax 에는 기본값 -ENOSYS(-38)가 들어갑니다(gdb 의 <code>$orig_rax</code> 가 원래 번호).'},
+      {loc:'kernel',t:'do_syscall_64 → x64_sys_call',r:{},cpl:0,stk:'Kernel',n:'번호 범위를 검사하고 <code>switch</code> 로 분기해 <code>'+c.name+'</code> 를 호출합니다. (Kernel 6.9+ x86-64 는 함수 포인터 배열 대신 switch 사용)'},
+      {loc:'kernel',t:c.name,r:{},cpl:0,stk:'Kernel',n:'실제 처리: '+c.impl+'.',warn:errno},
+      {loc:'kernel',t:'regs->ax = 결과',r:{rax:c.ret},cpl:0,stk:'Kernel',n:'결과를 pt_regs 의 rax 자리에 기록합니다. 오류이면 <b>음수</b>입니다'+(errno?': <code>-9</code> (-EBADF).':'.')},
+      {loc:'cpu',t:'sysretq',r:{rip:'(rcx 의 값)',rsp:'User Stack'},cpl:3,stk:'User',n:'Register 를 복원하고 <code>rip ← rcx</code>, CPL 0 → 3 으로 복귀합니다.'},
+      {loc:'user',t:'glibc Wrapper',r:errno?{rax:'-1'}:{},cpl:3,stk:'User',n:errno?'Wrapper 가 rax 의 -9 를 보고 <b>errno = 9</b> 로 저장한 뒤 <b>-1</b> 을 return 합니다. errno 는 glibc 가 만드는 User Space 변수입니다.<br><code>'+esc(c.strace)+'</code>':'Wrapper 가 rax 값을 그대로 return 합니다.<br><code>'+esc(c.strace)+'</code>',ok:!errno,warn:errno}];
+  }
+  function s2Render(){
+    const steps=s2Steps(S2.k); const st={rax:'?',rdi:'?',rsi:'?',rdx:'?',r10:'?',rcx:'?',r11:'?',rip:'wrapper+0x…',rsp:'User Stack'}; let cpl=3, stk='User', changed=new Set();
+    steps.slice(0,S2.i).forEach((s,idx)=>{ for(const r in s.r) st[r]=s.r[r]; if(s.cpl!==undefined) cpl=s.cpl; if(s.stk) stk=s.stk; if(idx===S2.i-1) changed=new Set(Object.keys(s.r)); });
+    $('#s-reg').innerHTML='<tr><th>Register</th><th>값</th><th>역할</th></tr>'+REGS.map(r=>'<tr class="'+(changed.has(r)?'hot':'')+'"><td>'+r+'</td><td>'+esc(st[r])+'</td><td style="font-family:var(--sans)">'+({rax:'번호 → 결과',rdi:'인자 1',rsi:'인자 2',rdx:'인자 3',r10:'인자 4',rcx:'CPU 가 덮어씀',r11:'CPU 가 덮어씀',rip:'실행 위치',rsp:'Stack'}[r])+'</td></tr>').join('');
+    $('#s-cpl').textContent=cpl; $('#s-cpl').style.color=cpl===0?'#C98A12':'#2457C5'; $('#s-stk').textContent=stk; $('#s-pos').textContent=S2.i+' / '+steps.length;
+    const locs=[['user','User Space (Ring 3)'],['cpu','CPU 명령'],['kernel','Kernel (Ring 0)']]; const curStep=S2.i?steps[S2.i-1]:null;
+    $('#s-flow').innerHTML=locs.map(([l,lab])=>'<div style="display:flex;align-items:center;gap:10px;margin:6px 0"><span style="width:130px;font-size:12.5px;color:var(--ink-soft)">'+lab+'</span><span class="mcell '+(curStep&&curStep.loc===l?(l==='kernel'?'bad':'hi'):'dim')+'" style="flex:1;min-width:0"><span class="v" style="font-size:14px">'+(curStep&&curStep.loc===l?esc(curStep.t):'·')+'</span></span></div>').join('');
+    if(!curStep) note('#s-note','<b>한 단계</b> 를 눌러 시작하세요. 예측: syscall 명령 직후 rax 에는 무엇이 들어 있을까요?');
+    else note('#s-note','<b>'+S2.i+'.</b> '+curStep.n, curStep.warn?'warn':(curStep.ok?'ok':''));
+    $('#s-step').disabled=S2.i>=steps.length;
+  }
+  $('#s-sel').onchange=e=>{ S2.k=e.target.value; S2.i=0; s2Render(); };
+  $('#s-step').onclick=()=>{ S2.i++; s2Render(); };
+  $('#s-reset').onclick=()=>{ S2.i=0; s2Render(); };
+  s2Render();
+
+  /* ======================= L3 ELF Explorer ======================= */
+  const SECS=[
+    {n:'ELF Header',off:'0x0',sz:'64',type:'',flg:'',seg:'02',d:'File 맨 앞 64 Byte. Magic 7f 45 4c 46, Type DYN, Entry point 0x1080, 두 목차(PHT, SHT)의 위치.'},
+    {n:'Program Header Table',off:'0x40',sz:'728',type:'',flg:'',seg:'02',d:'13개의 Program Header. Kernel 과 ld.so 가 읽는 "실행할 때 이렇게 올려라" 목차.'},
+    {n:'.interp',off:'0x318',sz:'28',type:'PROGBITS',flg:'A',seg:'02',d:'"/lib64/ld-linux-x86-64.so.2" 문자열. PT_INTERP 가 가리킨다 → L04, L05.'},
+    {n:'.dynsym .dynstr .rela.plt …',off:'0x3a0',sz:'~0x300',type:'DYNSYM 등',flg:'A',seg:'02',d:'Dynamic Loader 가 읽는 Symbol 과 Relocation 정보.'},
+    {n:'.plt .text',off:'0x1000',sz:'0x2ad',type:'PROGBITS',flg:'AX',seg:'03',d:'함수의 기계어. func, main, _start. Alloc + eXecute.'},
+    {n:'.rodata',off:'0x2000',sz:'0xc7',type:'PROGBITS',flg:'A',seg:'04',d:'const 전역 g_const, 문자열 Literal "string literal". 읽기 전용.'},
+    {n:'.got .data',off:'0x2db0',sz:'0x270',type:'PROGBITS',flg:'WA',seg:'05',d:'GOT, 초기값이 있는 전역 g_init = 42, s_init = 100, 포인터 g_str. Write + Alloc.'},
+    {n:'.bss',off:'0x3020',sz:'0x1040',type:'NOBITS',flg:'WA',seg:'05',d:'초기값 없는 g_uninit, s_buf[4096]. NOBITS: File 에는 크기만 있고 내용이 없다. 그래서 File 쪽 칸이 비어 있다.',nobits:true},
+    {n:'.symtab .strtab',off:'0x3020',sz:'~0x700',type:'SYMTAB',flg:'',seg:'-',d:'Symbol Table. readelf -s, nm, gdb 가 읽는다. Alloc 이 없으므로 어느 Segment 에도 속하지 않는다 → strip 으로 지워도 실행된다.'},
+    {n:'.debug_info …',off:'0x3700',sz:'~0x500',type:'PROGBITS',flg:'',seg:'-',d:'-g 로 넣은 Debug 정보. gdb 용. 어느 Segment 에도 속하지 않는다.'},
+    {n:'Section Header Table',off:'0x3c70',sz:'37×64',type:'',flg:'',seg:'-',d:'37개의 Section Header. Linker, gdb, readelf 가 읽는 목차. Kernel 은 보지 않는다.'}];
+  const SEGC={'02':['#DCE6FA','#2457C5','LOAD 02 · R'],'03':['#DDF2EA','#178A67','LOAD 03 · R E'],'04':['#FBF0D3','#C98A12','LOAD 04 · R'],'05':['#FBE3DF','#D6452E','LOAD 05 · RW'],'-':['#F6F8FB','#C9D1DC','Segment 없음']};
+  const E={view:'sec',i:0,sel:null};
+  const ESTEPS=[
+    {mem:[],n:'Kernel 이 <code>execve</code> 로 이 File 을 엽니다. 처음 4 Byte <code>7f 45 4c 46</code>(\\x7fELF)을 보고 ELF 로 판단합니다. <code>#!</code> 였다면 Script 로 처리했을 것입니다.'},
+    {mem:[],n:'ELF Header 의 "Start of program headers" 를 따라 <b>Program Header Table</b> 을 읽습니다. Section Header Table 은 보지 않습니다. PT_INTERP 가 있으니 ld.so 도 열어야 합니다.'},
+    {mem:['02'],n:'LOAD 02 (R): Offset 0 부터 0x6a0 Byte 를 Random 시작 주소(PIE)에 <b>mmap</b>. 읽기만 가능.'},
+    {mem:['02','03'],n:'LOAD 03 (R E): <code>.text</code> 가 들어 있는 코드 영역. 읽기 + 실행, <b>쓰기 금지</b>.'},
+    {mem:['02','03','04'],n:'LOAD 04 (R): <code>.rodata</code>. 상수와 문자열 Literal. 읽기만.'},
+    {mem:['02','03','04','05'],n:'LOAD 05 (RW): <code>.got .data</code> 를 FileSiz(0x270) 만큼 File 에서 Mapping. <b>실행 금지</b> (W^X).'},
+    {mem:['02','03','04','05','bss'],n:'<b>MemSiz(0x12b0) − FileSiz(0x270) = 0x1040</b> 만큼은 File 에 없는 부분입니다. 0 으로 채운 Anonymous Memory 를 붙입니다. 이것이 <code>.bss</code> 입니다. File 쪽에는 없고 Memory 쪽에만 생겼습니다.',ok:true},
+    {mem:['02','03','04','05','bss','ld','stack'],n:'ld.so 의 LOAD 도 같은 방식으로 올리고, Stack(argc/argv/envp/auxv)과 vDSO 를 만든 뒤 ld.so 의 Entry Point 로 복귀합니다(→ C1-5). <code>.symtab</code>, <code>.debug_info</code>, Section Header Table 은 <b>한 번도 Memory 에 올라오지 않았습니다.</b>',ok:true}];
+  let ePrev=[];
+  function eRender(){
+    const st=E.i?ESTEPS[E.i-1]:{mem:[]};
+    $('#e-file').innerHTML=SECS.map((s,k)=>{ const c=E.view==='seg'?SEGC[s.seg]:['#fff','#C9D1DC']; const sel=E.sel===k; const tag=E.view==='seg'?'<span style="font-size:11px;color:'+c[1]+';float:right">'+c[2]+'</span>':'<span style="font-size:11px;color:var(--ink-soft);float:right">'+(s.flg||'')+' '+(s.type||'')+'</span>';
+      return '<div data-k="'+k+'" style="cursor:pointer;border:2px solid '+(sel?'#1B2A41':c[1])+';background:'+(s.nobits?'repeating-linear-gradient(45deg,#fff,#fff 6px,#F1F3F7 6px,#F1F3F7 12px)':c[0])+';border-radius:6px;padding:6px 10px;margin:4px 0;font-family:var(--mono);font-size:12.5px">'+esc(s.n)+tag+'<div style="font-size:11px;color:var(--ink-soft)">offset '+s.off+' · size '+s.sz+(s.nobits?' · File 에 내용 없음':'')+'</div></div>'; }).join('');
+    $$('#e-file [data-k]').forEach(d=>d.onclick=()=>{ E.sel=+d.dataset.k; const s=SECS[E.sel]; note('#e-note','<b>'+esc(s.n)+'</b> — '+s.d+(E.view==='seg'?'<br>속한 Segment: <b>'+SEGC[s.seg][2]+'</b>':'<br>Type '+(s.type||'–')+' · Flag '+(s.flg||'–'))); eRender(true); });
+    const MEM=[['02','0x55d4e6a4e000','r--p','LOAD 02 · ELF Header, .dynsym …'],['03','0x55d4e6a4f000','r-xp','LOAD 03 · .text'],['04','0x55d4e6a50000','r--p','LOAD 04 · .rodata'],['05','0x55d4e6a51db0','rw-p','LOAD 05 · .got .data (File)'],['bss','0x55d4e6a52020','rw-p','.bss · 0 으로 채움 (Anonymous)'],['ld','0x7f8a5c9d0000','r-xp','ld-linux-x86-64.so.2'],['stack','0x7ffc1b288000','rw-p','[stack] · argc argv envp auxv']];
+    $('#e-mem').innerHTML=st.mem.length?MEM.filter(m=>st.mem.includes(m[0])).map(m=>{ const c=SEGC[m[0]]||(m[0]==='bss'?['#FBE3DF','#D6452E']:['#F6F8FB','#8A9BB5']); return '<div class="'+(ePrev.includes(m[0])?'':'pop-in')+'" style="border:2px solid '+c[1]+';background:'+c[0]+';border-radius:6px;padding:6px 10px;margin:4px 0;font-family:var(--mono);font-size:12.5px">'+m[1]+' <b>'+m[2]+'</b><div style="font-size:11px;color:var(--ink-soft)">'+esc(m[3])+'</div></div>'; }).join(''):'<div class="term" style="margin-top:0"><span class="c">(아직 Mapping 된 것이 없습니다. Kernel Loading 한 단계를 눌러 보세요)</span></div>';
+    ePrev=st.mem.slice();
+    $('#e-step').textContent=E.i>=ESTEPS.length?'Loading 완료':'Kernel Loading 한 단계 ('+E.i+'/'+ESTEPS.length+')'; $('#e-step').disabled=E.i>=ESTEPS.length;
+  }
+  function eNote(){ if(E.i) note('#e-note','<b>Loading '+E.i+'.</b> '+ESTEPS[E.i-1].n, ESTEPS[E.i-1].ok?'ok':''); else note('#e-note',E.view==='sec'?'<b>Section 관점</b>: 37개의 조각. 이름과 Flag(A=Alloc, X=eXecute, W=Write)로 나뉩니다. 조각을 눌러 보세요. 질문: 어느 Segment 에도 속하지 않는 Section 은?':'<b>Segment 관점</b>: Kernel 에게는 이름이 아니라 <b>권한</b>이 중요합니다. 권한이 같은 Section 끼리 Page(4KB) 단위로 묶여 LOAD 4개가 됩니다. 회색은 실행에 필요 없는 Section 입니다.'); }
+  tabs('e-view',b=>{ E.view=b.dataset.v; E.sel=null; eRender(); eNote(); });
+  $('#e-step').onclick=()=>{ E.i++; eRender(); eNote(); };
+  $('#e-reset').onclick=()=>{ E.i=0; E.sel=null; eRender(); eNote(); };
+  eRender(); eNote();
+
+  /* ======================= L4 PLT / GOT ======================= */
+  const P={mode:'lazy',i:0,got:'0x401050',perm:'RW',hijack:false,c1:null,c2:null,term:[]};
+  function pSteps(m){
+    const call1=m==='lazy'?[
+      ['main','call greet@plt','main 은 greet 가 어디 있는지 모릅니다. 실행 File 안의 <code>greet@plt</code> (0x401080) 를 호출합니다.'],
+      ['plt','jmp *GOT[greet]','PLT 는 "<code>0x403340</code> 번지(GOT 칸)에 적힌 주소로 점프" 하는 작은 코드입니다.'],
+      ['got','GOT = 0x401050','GOT 칸에는 아직 greet 의 주소가 아니라 <b>0x401050</b> (.plt 의 "Loader 에게 찾아 달라" 코드)이 들어 있습니다.'],
+      ['res','_dl_runtime_resolve','Dynamic Loader 의 Resolver 가 Load 된 Library 들에서 Symbol <code>greet</code> 를 찾습니다. (LD_DEBUG=bindings 의 binding 줄)',{term:"binding file ./main_lazy [0] to ./libgreet.so [0]: normal symbol `greet'"}],
+      ['got','GOT ← 0x7ffff7fb9119','<b>찾은 주소를 GOT 칸에 기록합니다.</b> 이 순간 GOT 의 값이 바뀝니다. 끝자리 119 = nm -D 의 greet Offset 0x1119.',{got:'0x7ffff7fb9119'}],
+      ['lib','greet() 실행','libgreet.so 의 greet 가 실행됩니다.',{term:'[libgreet] hello, first call (1)',end:1}]]:[
+      ['main','call greet@plt','main 이 <code>greet@plt</code> 를 호출합니다.'],
+      ['plt','jmp *GOT[greet]','PLT 가 GOT 칸의 주소로 점프합니다.'],
+      ['lib','greet() 실행','GOT 에는 이미 진짜 주소가 있으므로 곧바로 greet 가 실행됩니다. Resolver 를 거치지 않습니다.',{term:'[libgreet] hello, first call (1)',end:1}]];
+    const call2=[
+      ['main','call greet@plt','두 번째 호출. main 은 똑같이 <code>greet@plt</code> 를 호출합니다.'],
+      ['plt','jmp *GOT[greet]','PLT 가 GOT 칸으로 점프합니다.'],
+      ['lib','greet() 실행','GOT 에 <code>0x7ffff7fb9119</code> 가 있으므로 바로 greet. '+(m==='lazy'?'첫 호출보다 3단계 적습니다. binding 줄도 다시 나오지 않습니다.':'BIND_NOW 는 첫 호출과 두 번째 호출의 비용이 같습니다.'),{term:'[libgreet] hello, second call (2)',end:2}]];
+    const pre=m==='lazy'?[['ld','ld.so: 준비','ld.so 가 libgreet.so 와 libc 를 Mapping 했습니다. <b>Lazy Binding</b> 이라 GOT 칸은 비워 둔 채(0x401050) main 으로 갑니다. GOT 는 계속 <b>쓰기 가능</b>합니다.',{got:'0x401050',perm:'RW'}]]:
+      [['ld','ld.so: 모든 GOT 채우기','<b>BIND_NOW</b>: main 이전에 ld.so 가 모든 Symbol 을 찾아 GOT 를 채웁니다. 시작이 조금 느려지는 대신 실행 중에는 Resolver 가 없습니다.',{got:'0x7ffff7fb9119',perm:'RW',term:"binding file ./main_now [0] to ./libgreet.so [0]: normal symbol `greet'"}],
+       ['ld','mprotect(GOT, PROT_READ)','<b>RELRO</b>: 다 채운 GOT 영역을 <code>mprotect</code> 로 <b>읽기 전용</b>으로 바꿉니다(strace 의 mprotect 줄, L03 의 GNU_RELRO).',{perm:'R'}]];
+    return pre.map(s=>[...s,'pre']).concat(call1.map(s=>[...s,'c1'])).concat(call2.map(s=>[...s,'c2']));
+  }
+  function pApply(){
+    P.got=P.mode==='lazy'?'0x401050':'0x401050'; P.perm='RW'; P.term=[]; P.c1=null; P.c2=null; let n1=0,n2=0;
+    const st=pSteps(P.mode);
+    st.slice(0,P.i).forEach(s=>{ const x=s[3]&&typeof s[3]==='object'?s[3]:{}; const ph=s[s.length-1]; if(x.got) P.got=x.got; if(x.perm) P.perm=x.perm; if(x.term) P.term.push(x.term); if(ph==='c1') n1++; if(ph==='c2') n2++; if(x.end===1) P.c1=n1; if(x.end===2) P.c2=n2; });
+    if(P.hijack) P.got='0xdeadbeef (공격자 코드)';
+  }
+  function pRender(){
+    pApply(); const st=pSteps(P.mode); const s=P.i?st[P.i-1]:null; const at=s?s[0]:null;
+    const cells=[['ld','ld.so','시작 단계','main 이전'],['main','main()','0x401176','main_lazy .text'],['plt','greet@plt','0x401080','.plt.sec  R E'],['got','GOT[greet]',P.got,'0x403340  '+P.perm],['res','Resolver','_dl_runtime_resolve','ld.so'],['lib','greet()','0x7ffff7fb9119','libgreet.so .text']];
+    $('#p-cells').innerHTML=cells.map(c=>'<span class="mcell '+(at===c[0]?(c[0]==='got'&&s&&s[3]&&s[3].got?'ok':'hi'):'')+(c[0]==='got'&&P.hijack?' bad':'')+'" style="min-width:128px;flex:1"><span class="a">'+c[1]+'</span><span class="v" style="font-size:'+(c[0]==='got'?15:13)+'px">'+esc(c[2])+'</span><span class="n">'+esc(c[3])+'</span></span>').join('');
+    $('#p-path').innerHTML=st.map((x,k)=>'<div style="font-family:var(--mono);font-size:12.5px;padding:3px 8px;border-radius:4px;margin:2px 0;'+(k===P.i-1?'background:var(--blue-soft);font-weight:600':(k<P.i?'color:var(--ink)':'color:#9AA7B8'))+'">'+({pre:'시작',c1:'1번째',c2:'2번째'}[x[x.length-1]])+' · '+esc(x[1])+'</div>').join('');
+    $('#p-c1').textContent=P.c1==null?'–':P.c1; $('#p-c2').textContent=P.c2==null?'–':P.c2; $('#p-perm').textContent=P.perm==='R'?'R (읽기 전용)':'RW (쓰기 가능)'; $('#p-perm').style.color=P.perm==='R'?'#178A67':'#D6452E';
+    $('#p-term').innerHTML=P.term.length?P.term.map(t=>'<span class="'+(t.startsWith('binding')?'y':'g')+'">'+esc(t)+'</span>').join('\n'):'<span class="c">(출력 없음)</span>';
+    if(!s && !P.hijack) note('#p-note','<b>한 단계</b> 를 눌러 시작하세요. 예측: 첫 번째 호출과 두 번째 호출은 몇 단계씩 걸릴까요?');
+    else if(s) note('#p-note','<b>'+P.i+'.</b> '+s[2], s[3]&&s[3].got&&s[3].got!=='0x401050'?'ok':'');
+    $('#p-step').disabled=P.i>=st.length;
+  }
+  tabs('p-mode',b=>{ P.mode=b.dataset.m; P.i=0; P.hijack=false; pRender(); });
+  $('#p-step').onclick=()=>{ P.hijack=false; P.i++; pRender(); };
+  $('#p-reset').onclick=()=>{ P.i=0; P.hijack=false; pRender(); };
+  $('#p-attack').onclick=()=>{ if(P.i===0){ note('#p-note','먼저 몇 단계 진행해 프로그램을 시작시키세요.','warn'); return; } pApply();
+    if(P.perm==='R'){ note('#p-note','<b>공격 실패.</b> GOT 가 RELRO 로 읽기 전용이므로 덮어쓰려는 순간 Page Fault → <code>SIGSEGV</code> 로 Process 가 죽습니다. 공격자는 printf/greet 호출을 가로챌 수 없습니다. Ubuntu 가 BIND_NOW + RELRO 를 기본으로 쓰는 이유입니다.','ok'); $('#p-cells').classList.add('shake'); setTimeout(()=>$('#p-cells').classList.remove('shake'),400); }
+    else { P.hijack=true; pRender(); note('#p-note','<b>공격 성공.</b> Lazy Binding 의 GOT 는 실행 중에도 쓰기 가능합니다. Buffer Overflow 같은 취약점으로 GOT 칸을 <code>0xdeadbeef</code> 로 덮어쓰면, 다음 <code>greet@plt</code> 호출은 공격자의 코드로 점프합니다(GOT Overwrite). BIND_NOW 탭에서 같은 버튼을 눌러 비교하세요.','warn'); } };
+  pRender();
+
+  /* ======================= L5 execve → main ======================= */
+  const WHO=['Shell','Kernel','ld.so','_start','libc','main'];
+  const MAPS={exe:['0x555555554000','r--p','hello (LOAD × 4: r--, r-x, r--, rw-)'],exeS:['0x400000','r-xp','hello_static (libc 코드 포함)'],ld:['0x7ffff7fc3000','r-xp','ld-linux-x86-64.so.2'],stack:['0x7ffffffde000','rw-p','[stack]  argc argv envp auxv'],vdso:['0x7ffff7fc1000','r-xp','[vdso] / [vvar]'],libc:['0x7ffff7c00000','r-xp','libc.so.6 (LOAD × 4 + .bss)'],cache:['0x7ffff7fb1000','r--p','/etc/ld.so.cache'],heap:['0x555555559000','rw-p','[heap] (stdio Buffer)']};
+  function xSteps(k){
+    const dyn=k==='dyn';
+    const a=[
+      {who:'Shell',n:'Shell 이 fork 한 자식에서 <code>execve("./hello", argv, envp)</code> 를 호출합니다. 기존 과정에서 배운 "교체" 가 시작됩니다.',sc:['execve("./hello", ["./hello"], 0x7ffe… /* 23 vars */) = 0'],add:[]},
+      {who:'Kernel',n:'Kernel 이 File 앞부분을 읽어 <code>\\177ELF</code> 를 확인하고 Program Header 를 읽습니다. '+(dyn?'<b>PT_INTERP</b> 가 있으므로 ld.so 도 엽니다.':'<b>PT_INTERP 가 없습니다.</b> Loader 가 필요 없습니다.'),add:[]},
+      {who:'Kernel',n:'<b>돌아올 수 없는 지점.</b> 기존 주소 공간(코드, Data, Heap, Stack, mmap)을 버립니다. PID, 열린 fd(O_CLOEXEC 제외), 현재 Directory 는 유지됩니다.',add:[],clear:true,warn:true},
+      {who:'Kernel',n:'실행 File 의 PT_LOAD 를 하나씩 <b>mmap</b> 합니다. read 가 아니라 대응 관계만 기록하므로 수백 MB 실행 File 도 즉시 끝납니다(Demand Paging, Chapter 2).',add:[dyn?'exe':'exeS']}];
+    if(dyn) a.push({who:'Kernel',n:'PT_INTERP 가 가리키는 ld.so 의 PT_LOAD 도 같은 방식으로 mmap 합니다.',add:['ld']});
+    a.push({who:'Kernel',n:'새 Stack 을 만들고 꼭대기에 <code>argc, argv[], NULL, envp[], NULL, auxv[]</code> 를 쌓습니다. vDSO 도 Mapping 합니다. auxv 의 AT_PHDR, AT_ENTRY, AT_BASE 는 ld.so 에게 보내는 Memo 입니다.',add:['stack','vdso']});
+    a.push({who:dyn?'ld.so':'_start',n:dyn?'System Call 에서 "복귀" 하는데, 돌아가는 곳은 <b>ld.so 의 _start</b> 입니다. gdb <code>starti</code> 로 멈추면 이 위치입니다. 이 시점에 libc 는 아직 없습니다.':'PT_INTERP 가 없으므로 Kernel 은 곧바로 <b>실행 File 의 _start</b> 로 복귀합니다.',add:[]});
+    if(dyn){
+      a.push({who:'ld.so',n:'ld.so 가 <code>/etc/ld.so.cache</code> 를 열어 NEEDED 의 <code>libc.so.6</code> 경로를 찾습니다(L04 검색 순서 3번).',sc:['access("/etc/ld.so.preload", R_OK) = -1 ENOENT','openat(AT_FDCWD, "/etc/ld.so.cache", O_RDONLY|O_CLOEXEC) = 3','mmap(NULL, 21563, PROT_READ, MAP_PRIVATE, 3, 0) = 0x7ffff7fb1000'],add:['cache']});
+      a.push({who:'ld.so',n:'libc 를 열어 ELF Header 와 Program Header 를 읽고, <b>LOAD Segment 를 하나씩 mmap</b> 합니다. 권한 R, R+X, R, RW, 그리고 .bss 용 Anonymous.',sc:['openat(AT_FDCWD, "/lib/x86_64-linux-gnu/libc.so.6", O_RDONLY|O_CLOEXEC) = 3','read(3, "\\177ELF\\2\\1\\1\\3\\0…", 832) = 832','mmap(0x7ffff7c28000, 1605632, PROT_READ|PROT_EXEC, MAP_PRIVATE|MAP_FIXED|MAP_DENYWRITE, 3, 0x28000) = 0x7ffff7c28000','…'],add:['libc']});
+      a.push({who:'ld.so',n:'TLS(fs Register)를 설정하고 Relocation 으로 GOT 를 채운 뒤 <b>RELRO</b>: GOT 를 읽기 전용으로 바꿉니다. 다 쓴 ld.so.cache 는 해제합니다.',sc:['arch_prctl(ARCH_SET_FS, 0x7ffff7d8a740) = 0','mprotect(0x7ffff7dff000, 16384, PROT_READ) = 0','mprotect(0x555555557000, 4096, PROT_READ) = 0','munmap(0x7ffff7fb1000, 21563) = 0'],add:[],remove:['cache']});
+      a.push({who:'_start',n:'ld.so 가 auxv 의 <b>AT_ENTRY</b> 로 점프합니다. 드디어 <b>실행 File 의 _start</b>(crt1.o, 우리가 작성한 적 없는 코드).',add:[]});
+    } else {
+      a.push({who:'_start',n:'Static 실행 File 은 libc 코드가 이미 안에 들어 있어 Library 를 찾고 올리는 과정(openat, mmap, mprotect)이 <b>통째로 없습니다.</b> TLS 설정만 합니다.',sc:['arch_prctl(ARCH_SET_FS, 0x4c63c0) = 0','set_tid_address(0x4c6690) = 2755'],add:[]});
+    }
+    a.push({who:'_start',n:'_start 가 Stack 에서 argc, argv 를 꺼내고 <b>main 의 주소를 첫 인자로</b> <code>__libc_start_main</code> 을 호출합니다. 마지막 명령은 hlt — 돌아오면 안 되는 함수이기 때문입니다.',add:[]});
+    a.push({who:'libc',n:'<code>__libc_start_main</code>: stdio 와 Stack Protector 초기화, constructor(<code>.init_array</code>) 호출. 그리고 <code>main(argc, argv, envp)</code>.',add:[]});
+    a.push({who:'main',n:'<b>우리가 작성한 main</b>. printf 가 fstat 으로 Terminal 을 확인하고, brk 로 Buffer 를 잡고, write 로 출력합니다(L01).',sc:['fstat(1, {st_mode=S_IFCHR|0620, ...}) = 0','brk(NULL) = 0x555555559000','brk(0x55555557a000) = 0x55555557a000','write(1, "hello\\n", 6) = 6'],add:['heap'],main:true,ok:true});
+    a.push({who:'libc',n:'main 의 return 값으로 <code>exit()</code>: atexit Handler(역순) → destructor(.fini_array) → <b>stdio Buffer Flush</b> → <code>_exit</code> → exit_group System Call. Process 가 끝나고 Shell 의 <code>$?</code> 에 0 이 전달됩니다.',sc:['exit_group(0) = ?','+++ exited with 0 +++'],add:[],ok:true});
+    return a;
+  }
+  const X={k:'dyn',i:0}; let xPrev=[];
+  function xRender(){
+    const st=xSteps(X.k); let maps=[], sc=[], who='Shell', mainRan=false;
+    st.slice(0,X.i).forEach(s=>{ if(s.clear) maps=[]; (s.add||[]).forEach(m=>maps.push(m)); (s.remove||[]).forEach(m=>{ maps=maps.filter(x=>x!==m); }); (s.sc||[]).forEach(l=>sc.push(l)); who=s.who; if(s.main) mainRan=true; });
+    const s=X.i?st[X.i-1]:null;
+    $('#x-who').innerHTML=WHO.map(w=>{ const skip=X.k==='static'&&w==='ld.so'; return '<span class="mcell '+(s&&w===who?(w==='Kernel'?'bad':(w==='main'?'ok':'hi')):(skip?'dim':''))+'" style="min-width:110px"><span class="a">'+({Shell:'User',Kernel:'Ring 0',['ld.so']:'Dynamic Loader',_start:'crt1.o',libc:'glibc',main:'내 코드'}[w])+'</span><span class="v" style="font-size:15px">'+w+(skip?' ✕':'')+'</span></span>'; }).join('');
+    $('#x-map').innerHTML='<tr><th>주소</th><th>권한</th><th>내용</th></tr>'+(maps.length?maps.map(m=>{ const r=MAPS[m]; return '<tr class="'+(xPrev.includes(m)?'':'pop-in')+'"><td>'+r[0]+'</td><td>'+r[1]+'</td><td style="font-family:var(--sans)">'+esc(r[2])+'</td></tr>'; }).join(''):'<tr><td colspan="3" style="color:var(--ink-soft);font-family:var(--sans)">'+(X.i>=3?'(기존 주소 공간 폐기됨)':'(Shell 의 주소 공간)')+'</td></tr>');
+    xPrev=maps.slice();
+    const lines=sc.filter(l=>l!=='…'&&!l.startsWith('+++')).length;
+    $('#x-sc').textContent=lines; $('#x-main').textContent=mainRan?'완료':'아직'; $('#x-main').style.color=mainRan?'#178A67':'#5B6B80';
+    $('#x-term').innerHTML=sc.length?sc.map((l,k)=>'<span class="'+(l.startsWith('write')||l.startsWith('exit')||l.startsWith('+++')?'g':(l.startsWith('execve')?'y':''))+'">'+esc(l)+'</span>').join('\n'):'<span class="c">(아직 없음)</span>';
+    $('#x-pos').textContent=X.i+' / '+st.length;
+    if(!s) note('#x-note','<b>한 단계</b> 를 눌러 시작하세요. 예측: Kernel 이 처음 실행시키는 코드는 main 일까요?');
+    else note('#x-note','<b>'+X.i+'.</b> '+s.n, s.warn?'warn':(s.ok?'ok':''));
+    $('#x-step').disabled=$('#x-all').disabled=X.i>=st.length;
+  }
+  tabs('x-kind',b=>{ X.k=b.dataset.k; X.i=0; xRender(); });
+  $('#x-step').onclick=()=>{ X.i++; xRender(); };
+  $('#x-all').onclick=()=>{ X.i=xSteps(X.k).length; xRender(); };
+  $('#x-reset').onclick=()=>{ X.i=0; xRender(); };
+  xRender();
+})();
+</script>
+</body>
+</html>
