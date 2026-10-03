@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>고급 Linux System Programming II — 강의 자료</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#EEF1F6;--panel:#fff;--ink:#1B2A41;--soft:#5B6B80;--line:#D5DCE6;--blue:#2457C5;--blue-soft:#DCE6FA;--navy:#1B2A41;--amber:#C98A12;--green:#178A67;
+--sans:"IBM Plex Sans KR","Malgun Gothic",system-ui,sans-serif;--mono:"IBM Plex Mono",Consolas,monospace}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);line-height:1.6}
+.hero{background:var(--navy);color:#fff;padding:44px 24px 36px}
+.hero .in,.wrap{max-width:1180px;margin:0 auto}
+.hero .sup{font-family:var(--mono);color:#9FB7E8;font-size:13px;margin:0}
+.hero h1{font-size:34px;margin:6px 0 8px;line-height:1.25}
+.hero p{margin:0;color:#C9D8F7;max-width:760px}
+.hero .kw{font-family:var(--mono);color:#F5B942;margin-top:14px;font-size:15px}
+.hero .bar{display:flex;gap:10px;flex-wrap:wrap;margin-top:18px}
+.hero .bar a{color:#fff;border:1px solid #4A5D7E;border-radius:8px;padding:7px 14px;text-decoration:none;font-size:14px}
+.hero .bar a:hover{background:#2A3C5C}
+.wrap{padding:26px 18px 60px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:16px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:18px 18px 14px;display:flex;flex-direction:column;gap:8px}
+.card header{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.card .no{font-family:var(--mono);font-size:13px;font-weight:600;color:var(--blue);background:var(--blue-soft);border-radius:6px;padding:2px 8px}
+.card .meta{font-size:12.5px;color:var(--soft)}
+.card h2{font-size:19px;margin:2px 0 4px;line-height:1.35}
+.links{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.lk{display:block;text-align:center;border:1px solid var(--line);border-radius:8px;padding:7px 6px;font-size:14px;color:var(--ink);text-decoration:none;background:#F6F8FB}
+.lk:hover{border-color:var(--blue);color:var(--blue)}.lk.main{background:var(--blue);border-color:var(--blue);color:#fff}.lk.main:hover{color:#fff;background:#1C47A6}
+details{font-size:14px;margin-top:4px}summary{cursor:pointer;color:var(--soft)}
+details ol{margin:6px 0 0;padding-left:0;list-style:none}details li a{display:flex;gap:8px;padding:3px 0;color:var(--ink);text-decoration:none}
+details li a:hover{color:var(--blue)}details li span{font-family:var(--mono);color:var(--blue);min-width:38px}
+.soon{display:none;margin:0;font-size:13px;color:var(--amber);font-weight:600}
+.card.off{opacity:.55}.card.off .links,.card.off details{pointer-events:none;filter:grayscale(1)}.card.off .soon{display:block}
+.foot{margin-top:28px;font-size:13.5px;color:var(--soft)}.foot code{font-family:var(--mono);background:#E3E8F0;border-radius:4px;padding:1px 5px}
+</style>
+</head>
+<body>
+<section class="hero"><div class="in">
+<p class="sup">imguru-mooc · adv-sysprog</p>
+<h1>고급 Linux System Programming II</h1>
+<p>Linux API 사용법이 아니라 Application 에서 Kernel 까지 실제로 어떤 일이 일어나는지 — System Call, ELF, Virtual Memory, Page Cache, futex, epoll, io_uring, Tracing, Isolation — 를 관찰하고 이해합니다.</p>
+<p class="kw">Observe → Understand → Implement → Analyze</p>
+<div class="bar"><a href="ch00/lecture.html">처음 시작하기 (Chapter 0)</a><a href="https://github.com/imguru-mooc/adv-sysprog">GitHub 저장소</a></div>
+</div></section>
+<main class="wrap">
+<div class="grid">
+<article class="card" data-ch="0">
+<header><span class="no">Chapter 0</span><span class="meta">2 Unit · 영상 16분</span></header>
+<h2>과정 소개 · 실습 환경 준비</h2>
+<div class="links">
+<a class="lk main" href="ch00/lecture.html">강의 자료</a><a class="lk" href="ch00/animation.html">애니메이션 2</a><a class="lk" href="ch00/worksheet.html">워크시트</a><a class="lk" href="ch00/slide.pdf">Slide PDF</a>
+</div>
+<details><summary>Unit 목록</summary><ol><li><a href="ch00/lecture.html#sec1"><span>0.1</span>과정 소개</a></li><li><a href="ch00/lecture.html#sec2"><span>0.2</span>실습 환경 준비</a></li></ol></details>
+<p class="soon">제작 중</p>
+</article>
+<article class="card" data-ch="1">
+<header><span class="no">Chapter 1</span><span class="meta">5 Lecture · 영상 87분</span></header>
+<h2>프로그램 실행과 System Call 내부 구조</h2>
+<div class="links">
+<a class="lk main" href="ch01/lecture.html">강의 자료</a><a class="lk" href="ch01/animation.html">애니메이션 5</a><a class="lk" href="ch01/worksheet.html">워크시트</a><a class="lk" href="ch01/slide.pdf">Slide PDF</a>
+</div>
+<details><summary>Lecture 목록</summary><ol><li><a href="ch01/lecture.html#sec1"><span>L01</span>User Space에서 Kernel Space까지</a></li><li><a href="ch01/lecture.html#sec2"><span>L02</span>System Call Entry는 어떻게 동작하는가</a></li><li><a href="ch01/lecture.html#sec3"><span>L03</span>ELF 실행 파일 내부 구조</a></li><li><a href="ch01/lecture.html#sec4"><span>L04</span>Dynamic Loader와 Shared Library</a></li><li><a href="ch01/lecture.html#sec5"><span>L05</span>execve 이후 main()이 실행되기까지</a></li></ol></details>
+<p class="soon">제작 중</p>
+</article>
+<article class="card" data-ch="2">
+<header><span class="no">Chapter 2</span><span class="meta">5 Lecture · 영상 86분</span></header>
+<h2>Virtual Memory와 Memory Management 심화</h2>
+<div class="links">
+<a class="lk main" href="ch02/lecture.html">강의 자료</a><a class="lk" href="ch02/animation.html">애니메이션 5</a><a class="lk" href="ch02/worksheet.html">워크시트</a><a class="lk" href="ch02/slide.pdf">Slide PDF</a>
+</div>
+<details><summary>Lecture 목록</summary><ol><li><a href="ch02/lecture.html#sec1"><span>L06</span>Process Virtual Address Space</a></li><li><a href="ch02/lecture.html#sec2"><span>L07</span>Virtual Address와 Page Table</a></li><li><a href="ch02/lecture.html#sec3"><span>L08</span>TLB와 Address Translation</a></li><li><a href="ch02/lecture.html#sec4"><span>L09</span>Page Fault 내부 동작</a></li><li><a href="ch02/lecture.html#sec5"><span>L10</span>mmap과 Memory Mapped File</a></li></ol></details>
+<p class="soon">제작 중</p>
+</article>
+<article class="card" data-ch="3">
+<header><span class="no">Chapter 3</span><span class="meta">5 Lecture · 영상 85분</span></header>
+<h2>Page Cache와 Advanced File I/O</h2>
+<div class="links">
+<a class="lk main" href="ch03/lecture.html">강의 자료</a><a class="lk" href="ch03/animation.html">애니메이션 5</a><a class="lk" href="ch03/worksheet.html">워크시트</a><a class="lk" href="ch03/slide.pdf">Slide PDF</a>
+</div>
+<details><summary>Lecture 목록</summary><ol><li><a href="ch03/lecture.html#sec1"><span>L11</span>read/write 뒤에서 실제로 일어나는 일</a></li><li><a href="ch03/lecture.html#sec2"><span>L12</span>VFS와 file_operations</a></li><li><a href="ch03/lecture.html#sec3"><span>L13</span>Page Cache</a></li><li><a href="ch03/lecture.html#sec4"><span>L14</span>Buffered I/O / Direct I/O / mmap 비교</a></li><li><a href="ch03/lecture.html#sec5"><span>L15</span>Writeback, fsync 그리고 데이터 영속성</a></li></ol></details>
+<p class="soon">제작 중</p>
+</article>
+<article class="card" data-ch="4">
+<header><span class="no">Chapter 4</span><span class="meta">5 Lecture · 영상 87분</span></header>
+<h2>Advanced Thread Synchronization</h2>
+<div class="links">
+<a class="lk main" href="ch04/lecture.html">강의 자료</a><a class="lk" href="ch04/animation.html">애니메이션 5</a><a class="lk" href="ch04/worksheet.html">워크시트</a><a class="lk" href="ch04/slide.pdf">Slide PDF</a>
+</div>
+<details><summary>Lecture 목록</summary><ol><li><a href="ch04/lecture.html#sec1"><span>L16</span>Race Condition을 CPU 관점에서 분석하기</a></li><li><a href="ch04/lecture.html#sec2"><span>L17</span>Atomic Operation과 Compare-And-Swap</a></li><li><a href="ch04/lecture.html#sec3"><span>L18</span>CPU Memory Ordering과 Memory Barrier</a></li><li><a href="ch04/lecture.html#sec4"><span>L19</span>Futex 내부 구조</a></li><li><a href="ch04/lecture.html#sec5"><span>L20</span>Lock Contention과 Lock-Free Programming 입문</a></li></ol></details>
+<p class="soon">제작 중</p>
+</article>
+<article class="card" data-ch="5">
+<header><span class="no">Chapter 5</span><span class="meta">5 Lecture · 영상 86분</span></header>
+<h2>Linux Event Driven Programming</h2>
+<div class="links">
+<a class="lk main" href="ch05/lecture.html">강의 자료</a><a class="lk" href="ch05/animation.html">애니메이션 5</a><a class="lk" href="ch05/worksheet.html">워크시트</a><a class="lk" href="ch05/slide.pdf">Slide PDF</a>
+</div>
+<details><summary>Lecture 목록</summary><ol><li><a href="ch05/lecture.html#sec1"><span>L21</span>Blocking과 Non-Blocking I/O</a></li><li><a href="ch05/lecture.html#sec2"><span>L22</span>select와 poll 내부 구조</a></li><li><a href="ch05/lecture.html#sec3"><span>L23</span>epoll 내부 구조</a></li><li><a href="ch05/lecture.html#sec4"><span>L24</span>Level Trigger와 Edge Trigger</a></li><li><a href="ch05/lecture.html#sec5"><span>L25</span>eventfd / timerfd / signalfd / inotify</a></li></ol></details>
+<p class="soon">제작 중</p>
+</article>
+<article class="card" data-ch="6">
+<header><span class="no">Chapter 6</span><span class="meta">5 Lecture · 영상 87분</span></header>
+<h2>Modern Asynchronous I/O — io_uring</h2>
+<div class="links">
+<a class="lk main" href="ch06/lecture.html">강의 자료</a><a class="lk" href="ch06/animation.html">애니메이션 5</a><a class="lk" href="ch06/worksheet.html">워크시트</a><a class="lk" href="ch06/slide.pdf">Slide PDF</a>
+</div>
+<details><summary>Lecture 목록</summary><ol><li><a href="ch06/lecture.html#sec1"><span>L26</span>Linux Async I/O는 왜 필요해졌는가</a></li><li><a href="ch06/lecture.html#sec2"><span>L27</span>io_uring Architecture</a></li><li><a href="ch06/lecture.html#sec3"><span>L28</span>SQ / CQ / SQE / CQE 내부 구조</a></li><li><a href="ch06/lecture.html#sec4"><span>L29</span>io_uring File Read / Write 실습</a></li><li><a href="ch06/lecture.html#sec5"><span>L30</span>io_uring 심화와 기존 I/O 비교</a></li></ol></details>
+<p class="soon">제작 중</p>
+</article>
+<article class="card" data-ch="7">
+<header><span class="no">Chapter 7</span><span class="meta">5 Lecture · 영상 90분</span></header>
+<h2>Linux Debugging, Tracing, Performance</h2>
+<div class="links">
+<a class="lk main" href="ch07/lecture.html">강의 자료</a><a class="lk" href="ch07/animation.html">애니메이션 5</a><a class="lk" href="ch07/worksheet.html">워크시트</a><a class="lk" href="ch07/slide.pdf">Slide PDF</a>
+</div>
+<details><summary>Lecture 목록</summary><ol><li><a href="ch07/lecture.html#sec1"><span>L31</span>/proc를 이용한 Process 내부 분석</a></li><li><a href="ch07/lecture.html#sec2"><span>L32</span>strace, ltrace, gdb, Core Dump</a></li><li><a href="ch07/lecture.html#sec3"><span>L33</span>perf를 이용한 Performance 분석</a></li><li><a href="ch07/lecture.html#sec4"><span>L34</span>ftrace와 Kernel Function Tracing</a></li><li><a href="ch07/lecture.html#sec5"><span>L35</span>eBPF와 bpftrace</a></li></ol></details>
+<p class="soon">제작 중</p>
+</article>
+<article class="card" data-ch="8">
+<header><span class="no">Chapter 8</span><span class="meta">5 Lecture · 영상 86분</span></header>
+<h2>Linux Isolation, Security 그리고 Final Project</h2>
+<div class="links">
+<a class="lk main" href="ch08/lecture.html">강의 자료</a><a class="lk" href="ch08/animation.html">애니메이션 5</a><a class="lk" href="ch08/worksheet.html">워크시트</a><a class="lk" href="ch08/slide.pdf">Slide PDF</a>
+</div>
+<details><summary>Lecture 목록</summary><ol><li><a href="ch08/lecture.html#sec1"><span>L36</span>Linux Capability</a></li><li><a href="ch08/lecture.html#sec2"><span>L37</span>seccomp</a></li><li><a href="ch08/lecture.html#sec3"><span>L38</span>Namespace</a></li><li><a href="ch08/lecture.html#sec4"><span>L39</span>Cgroup</a></li><li><a href="ch08/lecture.html#sec5"><span>L40</span>Final Project: Linux Event &amp; Process Monitor</a></li></ol></details>
+<p class="soon">제작 중</p>
+</article>
+</div>
+<p class="foot">전체 9 Chapter · 42 Lecture · 영상 약 11시간 50분 · Ubuntu Server 26.04 LTS / Linux 7.0 · 예제 받기: <code>git clone https://github.com/imguru-mooc/adv-sysprog.git ~/lsp2</code></p>
+</main>
+<script>
+/* 공개된 Chapter 번호만 남긴다. 새 Chapter 를 올리면 숫자를 추가하세요. */
+var PUBLISHED = [0,1,2,3,4,5,6,7,8];
+document.querySelectorAll('.card').forEach(function(c){ if(PUBLISHED.indexOf(+c.dataset.ch)<0) c.classList.add('off'); });
+</script>
+</body>
+</html>

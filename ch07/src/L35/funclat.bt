@@ -1,0 +1,28 @@
+#!/usr/bin/env bpftrace
+/* funclat.bt - uprobe: Source 를 고치지 않고 User 함수의 호출 횟수와 실행 시간을 잰다
+ * 사용법: sudo bpftrace funclat.bt -c './hot 2000'
+ * (세 함수가 서로를 호출하지 않으므로 Thread 당 시작 시각 하나로 충분하다)
+ */
+uprobe:./hot:checksum,
+uprobe:./hot:normalize,
+uprobe:./hot:format
+{
+    @start[tid] = nsecs;                        /* 함수 진입 시각 */
+}
+
+uretprobe:./hot:checksum,
+uretprobe:./hot:normalize,
+uretprobe:./hot:format
+/@start[tid]/
+{
+    $us = (nsecs - @start[tid]) / 1000;
+    @calls[probe] = count();                    /* probe: 지금 실행 중인 Probe 의 이름 */
+    @avg_us[probe] = avg($us);
+    @total_us[probe] = sum($us);
+    delete(@start[tid]);
+}
+
+END
+{
+    clear(@start);
+}

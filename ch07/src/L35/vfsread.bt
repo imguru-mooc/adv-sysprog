@@ -1,0 +1,26 @@
+#!/usr/bin/env bpftrace
+/* vfsread.bt - kprobe: Kernel 함수 vfs_read 가 Process 별로 얼마나 호출되고 얼마나 걸리는지 (3 초)
+ * 사용법: sudo bpftrace vfsread.bt
+ */
+kprobe:vfs_read
+{
+    @start[tid] = nsecs;
+}
+
+kretprobe:vfs_read
+/@start[tid]/
+{
+    @calls[comm] = count();
+    @latency_us = hist((nsecs - @start[tid]) / 1000);
+    delete(@start[tid]);
+}
+
+interval:s:3
+{
+    exit();
+}
+
+END
+{
+    clear(@start);
+}

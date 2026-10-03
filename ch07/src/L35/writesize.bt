@@ -1,0 +1,23 @@
+#!/usr/bin/env bpftrace
+/* writesize.bt - 지정한 명령의 write() 크기 분포와 호출 시간 분포를 Histogram 으로 본다
+ * 사용법: sudo bpftrace writesize.bt -c './chatty slow'
+ */
+tracepoint:syscalls:sys_enter_write
+/pid == cpid/                                   /* cpid: -c 로 실행한 Child 의 PID */
+{
+    @size_bytes = hist(args->count);
+    @start[tid] = nsecs;
+}
+
+tracepoint:syscalls:sys_exit_write
+/@start[tid]/
+{
+    @latency_ns = hist(nsecs - @start[tid]);
+    @total_calls = count();
+    delete(@start[tid]);
+}
+
+END
+{
+    clear(@start);
+}

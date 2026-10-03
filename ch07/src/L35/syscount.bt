@@ -1,0 +1,14 @@
+#!/usr/bin/env bpftrace
+/* syscount.bt - System 전체에서 Process 별, System Call 별 호출 횟수를 센다 (3 초)
+ * 사용법: sudo bpftrace syscount.bt
+ */
+tracepoint:raw_syscalls:sys_enter
+{
+    @by_comm[comm] = count();                   /* Map: Key = Process 이름, Value = 횟수. Kernel 안에서 집계된다 */
+    @by_syscall[args->id] = count();
+}
+
+interval:s:3
+{
+    exit();                                     /* 종료하면 Map 이 자동으로 출력된다 */
+}

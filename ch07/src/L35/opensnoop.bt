@@ -1,0 +1,26 @@
+#!/usr/bin/env bpftrace
+/* opensnoop.bt - 누가 어떤 File 을 여는지, 결과는 무엇인지 실시간으로 본다
+ * 사용법: sudo bpftrace opensnoop.bt            (System 전체)
+ *         sudo bpftrace opensnoop.bt -c './chatty missing'
+ */
+BEGIN
+{
+    printf("%-8s %-16s %4s %s\n", "PID", "COMM", "RET", "PATH");
+}
+
+tracepoint:syscalls:sys_enter_openat
+{
+    @path[tid] = args->filename;                /* 진입 시: 경로 포인터를 Thread 별로 기억 */
+}
+
+tracepoint:syscalls:sys_exit_openat
+/@path[tid]/
+{
+    printf("%-8d %-16s %4d %s\n", pid, comm, args->ret, str(@path[tid]));
+    delete(@path[tid]);
+}
+
+END
+{
+    clear(@path);
+}
